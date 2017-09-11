@@ -1,0 +1,19 @@
+---
+- name: Installing dependencies
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items:
+    - python-setuptools
+
+- easy_install:
+    name: pip
+    state: latest
+
+- name: Install docker python binding
+  pip:
+    name: docker
+
+- name: Mount /run
+  command: mount --make-shared /run

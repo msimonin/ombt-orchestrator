@@ -1,0 +1,42 @@
+---
+- name: Start the grafana container
+  docker_container:
+    name: "grafana"
+    image: "grafana/grafana:3.1.0"
+    detach: True
+    ports:
+      - "3000:3000"
+    state: started
+    env:
+      INFLUXDB_HOST: "{{ influx_vip }}"
+      INFLUXDB_PORT: 8086
+      INFLUXDB_NAME: cadvisor
+      INFLUXDB_USER: root
+      INFLUXDB_PASS: root
+
+- name: Waiting for the grafana service to become available
+  wait_for:
+    host: "{{ grafana_vip }}"
+    port: 3000
+    state: started
+    delay: 2
+    timeout: 120
+
+- name: Add the influx data source
+  uri:
+    url: "http://{{ grafana_vip }}:3000/api/datasources"
+    user: admin
+    password: admin
+    force_basic_auth: yes
+    body_format: json
+    method: POST
+    # we workaround this issue :
+    # https://github.com/ansible/ansible-modules-core/issues/265
+    # by adding an empty space at the beginning of the json ...
+    body: " { \"name\": \"{{ item.name }}\", \"type\": \"influxdb\", \"url\": \"http://{{ influx_vip }}:8086\", \"access\": \"proxy\", \"database\": \"{{ item.database }}\", \"user\": \"root\", \"password\": \"root\", \"isDefault\": true }"
+    return_content: yes
+    status_code: 200,500 # already added
+  with_items:
+    - { name: influx-cadvisor, database: cadvisor }
+    - { name: influx-collectd, database: collectd }
+    - { name: influx-events, database: events }

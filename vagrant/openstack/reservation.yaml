@@ -1,0 +1,60 @@
+---
+# ############################################### #
+# Vagrant reservation parameters                  #
+# ############################################### #
+provider:
+  type: vagrant
+  box: debian/contrib-jessie64
+resources:
+  extra-large:
+    control: 1
+  medium:
+    network: 1
+  tiny:
+    compute: 1
+
+
+# ############################################### #
+# Inventory to use                                #
+# ############################################### #
+
+# This will describe the topology of your services
+# inventory: inventories/inventory.sample
+
+# ############################################### #
+# docker registry parameters
+# ############################################### #
+registry:
+  type: external
+  ip: 192.168.142.252
+  port: 5000
+
+# ############################################### #
+# Enos Customizations                             #
+# ############################################### #
+enable_monitoring: no
+
+
+# ############################################### #
+# Kolla parameters                                #
+# ############################################### #
+# Repository
+kolla_repo: "https://git.openstack.org/openstack/kolla-ansible"
+kolla_ref: "master"
+
+# Vars : globals.yml
+kolla:
+  kolla_base_distro: "ubuntu"
+  kolla_install_type: "source"
+  docker_namespace: "beyondtheclouds"
+  openstack_release: "latest"
+  enable_heat: "no"
+  enable_qdrouterd: "yes"
+  enable_rabbitmq: "no"
+  node_custom_config: configs_vbox
+
+patches:
+  - name: patch kolla-ansible
+    src: "{{ cwd }}/patchs/kolla-ansible"
+    dst: kolla/tools/kolla-ansible
+    enabled: yes
