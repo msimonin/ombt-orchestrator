@@ -1,16 +1,16 @@
 [control]
-paravance-52.rennes.grid5000.fr ansible_user=root  control_network=eth0   internal_network=eth1 
+paravance-72.rennes.grid5000.fr ansible_user=root  control_network=eth0   internal_network=eth1 
 [cadvisor]
-paravance-45.rennes.grid5000.fr ansible_user=root  control_network=eth0   internal_network=eth1 
-paravance-52.rennes.grid5000.fr ansible_user=root  control_network=eth0   internal_network=eth1 
+paravance-71.rennes.grid5000.fr ansible_user=root  control_network=eth0   internal_network=eth1 
+paravance-72.rennes.grid5000.fr ansible_user=root  control_network=eth0   internal_network=eth1 
 [collectd]
-paravance-45.rennes.grid5000.fr ansible_user=root  control_network=eth0   internal_network=eth1 
-paravance-52.rennes.grid5000.fr ansible_user=root  control_network=eth0   internal_network=eth1 
+paravance-71.rennes.grid5000.fr ansible_user=root  control_network=eth0   internal_network=eth1 
+paravance-72.rennes.grid5000.fr ansible_user=root  control_network=eth0   internal_network=eth1 
 [grafana]
-paravance-52.rennes.grid5000.fr ansible_user=root  control_network=eth0   internal_network=eth1 
+paravance-72.rennes.grid5000.fr ansible_user=root  control_network=eth0   internal_network=eth1 
 [registry]
-paravance-52.rennes.grid5000.fr ansible_user=root  control_network=eth0   internal_network=eth1 
+paravance-72.rennes.grid5000.fr ansible_user=root  control_network=eth0   internal_network=eth1 
 [router]
-paravance-45.rennes.grid5000.fr ansible_user=root  control_network=eth0   internal_network=eth1 
+paravance-71.rennes.grid5000.fr ansible_user=root  control_network=eth0   internal_network=eth1 
 [influx]
-paravance-52.rennes.grid5000.fr ansible_user=root  control_network=eth0   internal_network=eth1 
+paravance-72.rennes.grid5000.fr ansible_user=root  control_network=eth0   internal_network=eth1 
