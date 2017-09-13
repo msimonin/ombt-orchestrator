@@ -96,7 +96,8 @@ def generate_inventory(roles):
         s = []
         s.append("%s" % d["host"])
         s.append("ansible_user=root")
-        s.extend([" %s=%s " % (role, nic) for nic, role in d["nics"]])
+        for nic, roles in d["nics"]:
+            s.extend([" %s=%s " % (role, nic) for role in roles])
         return " ".join(s)
 
     inventory = []

@@ -1,0 +1,58 @@
+router {
+    mode: interior
+    id: {{ item.router_id }}
+}
+
+{% for listener in item.listeners %}
+listener {
+    {% if listener.role == "inter-router" %}
+    host: {{ hostvars[listener.host]['ansible_' + internal_network]['ipv4']['address'] }}
+    {% else %}
+    host: {{ hostvars[listener.host]['ansible_' + control_network]['ipv4']['address'] }}
+    {% endif %}
+    port: {{ listener.port }}
+    role: {{ listener.role }}
+    {% if listener.authenticatePeer is defined %}authenticatePeer: {{ listener.authenticatePeer }} {% else %}{% endif %}
+
+    {% if listener.saslMechanisms is defined %}saslMechanisms: {{ listener.saslMechanisms }} {% else %}{% endif %}
+
+}
+{% endfor %}
+
+{% for connector in item.connectors %}
+connector {
+    host: {{ hostvars[connector.host]['ansible_' + internal_network]['ipv4']['address'] }}
+    port: {{ connector.port }}
+    role: {{ connector.role }}
+}
+{% endfor %}
+
+address {
+  prefix: openstack.org/om/rpc/multicast
+  distribution: multicast
+}
+
+address {
+  prefix: openstack.org/om/rpc/unicast
+  distribution: closest
+}
+
+address {
+  prefix: openstack.org/om/rpc/anycast
+  distribution: balanced
+}
+
+address {
+  prefix: openstack.org/om/notify/multicast
+  distribution: multicast
+}
+
+address {
+  prefix: openstack.org/om/notify/unicast
+  distribution: closest
+}
+
+address {
+  prefix: openstack.org/om/notify/anycast
+  distribution: balanced
+}
