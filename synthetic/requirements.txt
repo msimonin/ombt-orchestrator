@@ -1,4 +1,7 @@
 deploy5k
+# will pull ansible
+enoslib
 requests>=2.18,<3
-ansible>=2.3,<2.4
+
+# bleeding edges zone
 git+https://github.com/msimonin/qpid-dispatch-generator@fix-machines-names

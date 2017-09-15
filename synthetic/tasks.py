@@ -1,18 +1,18 @@
-from utils.enoslib_task import enostask, _set_resultdir
 from deploy5k.api import Resources
+from enoslib.ansible_utils import run_ansible, generate_inventory
+from enoslib.task_utils import enostask
 from qpid_generator.graph import generate
 from qpid_generator.distribute import round_robin
 from qpid_generator.configurations import get_conf
-from utils.enoslib_ansible import run_ansible, generate_inventory
+from utils.roles import to_enos_roles
 
 GRAPH_TYPE="complete_graph"
 GRAPH_ARGS=[5]
 
-cluster = "parasilo"
 resources = {
     "machines":[{
         "roles": ["router", "cadvisor", "collectd"],
-        "cluster": cluster,
+        "cluster": "grisou",
         "nodes": 1,
         "primary_network": "n1",
         "secondary_networks": ["n2"]
@@ -25,7 +25,7 @@ resources = {
             "cadvisor",
             "collectd"
         ],
-        "cluster": cluster,
+        "cluster": "grisou",
         "nodes": 1,
         "primary_network": "n1",
         "secondary_networks": ["n2"]
@@ -34,28 +34,29 @@ resources = {
         "id": "n1",
         "roles": ["control_network"],
         "type": "prod",
-        "site": "rennes"
+        "site": "nancy"
     },{
         "id": "n2",
         "roles": ["internal_network"],
         "type": "kavlan-local",
-        "site": "rennes"
+        "site": "nancy"
     }]
 }
 
 options = {
-    "walltime": "02:40:00",
+    "walltime": "00:30:00",
     "dhcp": True,
 #    "force_deploy": "yes",
 }
-
 @enostask(new=True)
 def launch(env=None, **kwargs):
     r = Resources(resources)
 
     r.launch(**options)
     roles = r.get_roles()
-    env["roles"] = roles
+    print(roles)
+    enos_roles = {}
+    env["roles"] = to_enos_roles(roles)
 
 @enostask()
 def prepare(env=None, **kwargs):
