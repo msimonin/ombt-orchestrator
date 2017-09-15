@@ -11,31 +11,30 @@ GRAPH_ARGS=[5]
 
 resources = {
     "machines":[{
-        "roles": ["router", "cadvisor", "collectd"],
-        "cluster": "grisou",
+        "roles": ["router", "telegraf"],
+        "cluster": "econome",
         "nodes": 1,
         "primary_network": "n1",
-        "secondary_networks": ["n2"]
+        "secondary_networks": []
     },{
         "roles": [
             "control",
             "registry",
+            "prometheus",
             "grafana",
-            "influx",
-            "cadvisor",
-            "collectd"
+            "telegraf"
         ],
-        "cluster": "grisou",
+        "cluster": "econome",
         "nodes": 1,
         "primary_network": "n1",
-        "secondary_networks": ["n2"]
+        "secondary_networks": []
     }],
     "networks": [{
         "id": "n1",
-        "roles": ["control_network"],
+        "roles": ["control_network", "internal_network"],
         "type": "prod",
-        "site": "nancy"
-    },{
+        "site": "nantes"
+    },{#unused
         "id": "n2",
         "roles": ["internal_network"],
         "type": "kavlan-local",
@@ -44,7 +43,7 @@ resources = {
 }
 
 options = {
-    "walltime": "00:30:00",
+    "walltime": "03:00:00",
     "dhcp": True,
 #    "force_deploy": "yes",
 }

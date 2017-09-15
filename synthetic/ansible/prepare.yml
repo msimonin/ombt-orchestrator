@@ -2,16 +2,16 @@
 - name: Common configuration
   hosts: all
   roles:
-    - { role: common,
-        tags: ['common']}
-    - { role: registry,
-        tags: ['registry']}
-    - { role: cadvisor,
-        tags: ['cadvisor']}
-    - { role: collectd,
-        tags: ['collectd']}
-    - { role: influx,
-        tags: ['influx']}
-    - { role: grafana,
-        tags: ['grafana']}
+    - common
+    - registry
+    - telegraf
 
+- name: Deploy prometheus
+  hosts: prometheus
+  roles:
+    - prometheus
+
+- name: Deploy the grafana
+  hosts: grafana
+  roles:
+    - grafana

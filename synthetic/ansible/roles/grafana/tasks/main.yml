@@ -1,3 +1,2 @@
 ---
 - include: deploy.yml
-  when: inventory_hostname in groups['grafana'] 

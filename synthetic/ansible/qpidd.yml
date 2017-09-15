@@ -2,5 +2,4 @@
 - name: Qpid dispatch deployment
   hosts: router
   roles:
-    - { role: qpidd,
-        tags: ['qpidd']}
+    - qpid

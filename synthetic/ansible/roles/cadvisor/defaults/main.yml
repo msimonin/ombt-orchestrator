@@ -1,4 +1,0 @@
----
-housekeeping_interval: 5s
-influx_vip: "{{ hostvars[groups['influx'][0]]['ansible_' + control_network]['ipv4']['address'] }}"
-
