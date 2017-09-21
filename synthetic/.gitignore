@@ -1,4 +1,5 @@
 # Enoslib
+/Vagrantfile
 /enos_*/
 /ansible/hosts
 /current

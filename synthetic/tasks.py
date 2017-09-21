@@ -1,15 +1,25 @@
 from deploy5k.api import Resources
 from enoslib.ansible_utils import run_ansible, generate_inventory
 from enoslib.task_utils import enostask
+from enoslib.provider.g5k import G5k
+from enoslib.provider.enos_vagrant import Enos_vagrant
 from qpid_generator.graph import generate
 from qpid_generator.distribute import round_robin
 from qpid_generator.configurations import get_conf
 from utils.roles import to_enos_roles
 
+import os
+
 GRAPH_TYPE="complete_graph"
 GRAPH_ARGS=[5]
 
-resources = {
+g5k_options = {
+    "walltime": "03:00:00",
+    "dhcp": True,
+#    "force_deploy": "yes",
+}
+
+g5k_resources = {
     "machines":[{
         "roles": ["router", "telegraf"],
         "cluster": "econome",
@@ -42,55 +52,83 @@ resources = {
     }]
 }
 
-options = {
-    "walltime": "03:00:00",
-    "dhcp": True,
-#    "force_deploy": "yes",
+vagrant_resources = {
+    "machines":[{
+        "roles": ["router", "telegraf"],
+        "flavor": "tiny",
+        "number": 2,
+        "networks": ["control_network", "internal_network"]
+    },{
+        "roles": [
+            "control",
+            "registry",
+            "prometheus",
+            "grafana",
+            "telegraf"
+        ],
+        "flavor": "medium",
+        "number": 1,
+        "networks": ["control_network"]
+    }]
 }
-@enostask(new=True)
-def launch(env=None, **kwargs):
-    r = Resources(resources)
+vagrant_options = {
+    "backend": "virtualbox",
+    "user": "root",
+    "box": "debian/jessie64"
+}
 
-    r.launch(**options)
-    roles = r.get_roles()
-    print(roles)
-    enos_roles = {}
-    env["roles"] = to_enos_roles(roles)
+# The two following tasks are exclusive either you choose to go with g5k or
+# vagrant you can't mix the two of them in the future we might want to
+# factorize it and have a switch on the command line to choose.
+@enostask(new=True)
+def g5k(env=None, **kwargs):
+    g5k_config = g5k_options
+    g5k_config.update({"resources": g5k_resources})
+    provider = G5k()
+    roles, networks = provider.init(g5k_config)
+    env["roles"] = roles
+    env["networks"] = networks
+
+
+@enostask(new=True)
+def vagrant(env=None, **kwargs):
+    vagrant_config = vagrant_options
+    vagrant_config.update({"resources": vagrant_resources})
+    provider = Enos_vagrant()
+    roles, networks = provider.init(vagrant_config)
+    # saving the roles
+    env["roles"] = roles
+    env["networks"] = networks
+
+@enostask()
+def inventory(env=None, **kwargs):
+    roles = env["roles"]
+    networks = env["networks"]
+    env["inventory"] = os.path.join(env["resultdir"], "hosts")
+    generate_inventory(roles, networks, env["inventory"] , check_networks=True)
 
 @enostask()
 def prepare(env=None, **kwargs):
     # Generate inventory
-    roles = env["roles"]
-    inventory = generate_inventory(roles)
-    with open("ansible/hosts", "w") as f:
-        f.write(inventory)
-
     extra_vars = {
         "registry": {
             "type": "internal"
         }
     }
-
-    extra_vars = {
-        "registry": {
-            "type": "internal"
-        }
-    }
-
     # Deploys the monitoring stack and some common stuffs
-    run_ansible(["ansible/prepare.yml"], "ansible/hosts", extra_vars=extra_vars)
+    run_ansible(["ansible/prepare.yml"], env["inventory"], extra_vars=extra_vars)
 
 @enostask()
 def qpidd(env=None, *kwargs):
     roles = env["roles"]
-    machines = [desc["host"] for desc in roles["router"]]
+    machines = [desc.alias for desc in roles["router"]]
     graph = generate(GRAPH_TYPE, *GRAPH_ARGS)
     confs = get_conf(graph, machines, round_robin)
     qpidd_confs = {"qpidd_confs": confs.values()}
     env.update(qpidd_confs)
-    run_ansible(["ansible/qpidd.yml"], "ansible/hosts", extra_vars=qpidd_confs)
+    run_ansible(["ansible/qpidd.yml"], env["inventory"], extra_vars=qpidd_confs)
 
 @enostask()
 def destroy(env=None, *kwargs):
-    run_ansible(["ansible/destroy.yml"], "ansible/hosts")
+    run_ansible(["ansible/destroy.yml"], env["inventory"])
 

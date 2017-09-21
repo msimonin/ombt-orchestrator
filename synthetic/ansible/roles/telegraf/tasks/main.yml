@@ -10,8 +10,9 @@
     image: "telegraf"
     detach: True
     state: started
-    ports:
-      - 9273:9273
+    network_mode: host
+  # ports:
+  #    - 9273:9273
     volumes:
       - "/telegraf.conf:/etc/telegraf/telegraf.conf:ro"
       - "/sys:/rootfs/sys:ro"

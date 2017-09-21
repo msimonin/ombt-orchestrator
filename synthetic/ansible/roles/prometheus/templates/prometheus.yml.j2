@@ -16,4 +16,4 @@ scrape_configs:
     scrape_interval: 5s
 
     static_configs:
-    - targets: [{% for host in groups['telegraf'] %}'{{ host }}:9273'{% if not loop.last %},{% endif %}{% endfor %}]
+    - targets: [{% for host in groups['telegraf'] %}"{{ hostvars[host]['ansible_' + control_network]['ipv4']['address'] }}:9273"{% if not loop.last %},{% endif %}{% endfor %}]

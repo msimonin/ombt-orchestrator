@@ -2,4 +2,4 @@
 - name: Qpid dispatch deployment
   hosts: router
   roles:
-    - qpid
+    - qpidd
