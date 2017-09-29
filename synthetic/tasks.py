@@ -1,8 +1,8 @@
 from deploy5k.api import Resources
-from enoslib.ansible_utils import run_ansible, generate_inventory
-from enoslib.task_utils import enostask
-from enoslib.provider.g5k import G5k
-from enoslib.provider.enos_vagrant import Enos_vagrant
+from enoslib.api import run_ansible, generate_inventory
+from enoslib.task import enostask
+from enoslib.infra.enos_g5k.provider import G5k
+from enoslib.infra.enos_vagrant.provider import Enos_vagrant
 from qpid_generator.graph import generate
 from qpid_generator.distribute import round_robin
 from qpid_generator.configurations import get_conf
@@ -84,7 +84,7 @@ vagrant_options = {
 def g5k(env=None, **kwargs):
     g5k_config = g5k_options
     g5k_config.update({"resources": g5k_resources})
-    provider = G5k()
+    provider = G5k(g5k_config)
     roles, networks = provider.init(g5k_config)
     env["roles"] = roles
     env["networks"] = networks
@@ -94,7 +94,7 @@ def g5k(env=None, **kwargs):
 def vagrant(env=None, **kwargs):
     vagrant_config = vagrant_options
     vagrant_config.update({"resources": vagrant_resources})
-    provider = Enos_vagrant()
+    provider = Enos_vagrant(vagrant_config)
     roles, networks = provider.init(vagrant_config)
     # saving the roles
     env["roles"] = roles
