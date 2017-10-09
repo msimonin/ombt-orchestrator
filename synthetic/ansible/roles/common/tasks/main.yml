@@ -6,6 +6,10 @@
     update_cache: yes
   with_items:
     - python-setuptools
+    # ombt requirements
+    - git
+    - gcc
+    - python-dev
 
 - easy_install:
     name: pip
@@ -17,3 +21,15 @@
 
 - name: Mount /run
   command: mount --make-shared /run
+
+- name: Installing ombt
+  git:
+    repo: https://github.com/kgiusti/ombt
+    dest: /opt/ombt
+
+# NOTE(msimonin): ombt is missing a setup.py
+# otherwise we could install it using the pip module
+- name: Installing ombt requirements
+  shell: pip install -r /opt/ombt/requirements.txt
+
+

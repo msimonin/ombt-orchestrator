@@ -6,6 +6,13 @@
     - registry
     - telegraf
 
+- name: Apply role chrony
+  hosts:
+    - chrony-server
+    - chrony
+  roles:
+    - chrony
+
 - name: Deploy prometheus
   hosts: prometheus
   roles:
@@ -15,3 +22,5 @@
   hosts: grafana
   roles:
     - grafana
+
+

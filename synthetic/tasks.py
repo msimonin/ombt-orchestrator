@@ -1,5 +1,4 @@
-from deploy5k.api import Resources
-from enoslib.api import run_ansible, generate_inventory
+from enoslib.api import run_ansible, generate_inventory, emulate_network, validate_network
 from enoslib.task import enostask
 from enoslib.infra.enos_g5k.provider import G5k
 from enoslib.infra.enos_vagrant.provider import Enos_vagrant
@@ -21,7 +20,7 @@ g5k_options = {
 
 g5k_resources = {
     "machines":[{
-        "roles": ["router", "telegraf"],
+        "roles": ["router", "telegraf", "chrony"],
         "cluster": "econome",
         "nodes": 1,
         "primary_network": "n1",
@@ -32,7 +31,8 @@ g5k_resources = {
             "registry",
             "prometheus",
             "grafana",
-            "telegraf"
+            "telegraf",
+            "chrony-server"
         ],
         "cluster": "econome",
         "nodes": 1,
@@ -54,9 +54,14 @@ g5k_resources = {
 
 vagrant_resources = {
     "machines":[{
-        "roles": ["router", "telegraf"],
+        "roles": ["router", "telegraf", "router-server","chrony"],
         "flavor": "tiny",
-        "number": 2,
+        "number": 1,
+        "networks": ["control_network", "internal_network"]
+    },{
+        "roles": ["router", "telegraf", "router-client", "chrony"],
+        "flavor": "tiny",
+        "number": 1,
         "networks": ["control_network", "internal_network"]
     },{
         "roles": [
@@ -64,7 +69,8 @@ vagrant_resources = {
             "registry",
             "prometheus",
             "grafana",
-            "telegraf"
+            "telegraf",
+            "chrony-server"
         ],
         "flavor": "medium",
         "number": 1,
@@ -77,6 +83,14 @@ vagrant_options = {
     "box": "debian/jessie64"
 }
 
+tc = {
+    "enable": True,
+    "default_delay": "20ms",
+    "default_rate": "1gbit",
+    "groups": ["router-client", "router-server"]
+}
+
+
 # The two following tasks are exclusive either you choose to go with g5k or
 # vagrant you can't mix the two of them in the future we might want to
 # factorize it and have a switch on the command line to choose.
@@ -85,7 +99,7 @@ def g5k(env=None, **kwargs):
     g5k_config = g5k_options
     g5k_config.update({"resources": g5k_resources})
     provider = G5k(g5k_config)
-    roles, networks = provider.init(g5k_config)
+    roles, networks = provider.init()
     env["roles"] = roles
     env["networks"] = networks
 
@@ -95,10 +109,11 @@ def vagrant(env=None, **kwargs):
     vagrant_config = vagrant_options
     vagrant_config.update({"resources": vagrant_resources})
     provider = Enos_vagrant(vagrant_config)
-    roles, networks = provider.init(vagrant_config)
+    roles, networks = provider.init()
     # saving the roles
     env["roles"] = roles
     env["networks"] = networks
+
 
 @enostask()
 def inventory(env=None, **kwargs):
@@ -106,6 +121,7 @@ def inventory(env=None, **kwargs):
     networks = env["networks"]
     env["inventory"] = os.path.join(env["resultdir"], "hosts")
     generate_inventory(roles, networks, env["inventory"] , check_networks=True)
+
 
 @enostask()
 def prepare(env=None, **kwargs):
@@ -118,6 +134,7 @@ def prepare(env=None, **kwargs):
     # Deploys the monitoring stack and some common stuffs
     run_ansible(["ansible/prepare.yml"], env["inventory"], extra_vars=extra_vars)
 
+
 @enostask()
 def qpidd(env=None, *kwargs):
     roles = env["roles"]
@@ -127,6 +144,21 @@ def qpidd(env=None, *kwargs):
     qpidd_confs = {"qpidd_confs": confs.values()}
     env.update(qpidd_confs)
     run_ansible(["ansible/qpidd.yml"], env["inventory"], extra_vars=qpidd_confs)
+
+
+@enostask()
+def emulate(env=None, **kwargs):
+    inventory = env["inventory"]
+    roles = env["roles"]
+    emulate_network(roles, inventory, tc)
+
+
+@enostask()
+def validate(env=None, **kwargs):
+    inventory = env["inventory"]
+    roles = env["roles"]
+    validate_network(roles, inventory)
+
 
 @enostask()
 def destroy(env=None, *kwargs):
