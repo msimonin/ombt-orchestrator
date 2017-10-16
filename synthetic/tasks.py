@@ -8,80 +8,11 @@ from qpid_generator.configurations import get_conf
 from utils.roles import to_enos_roles
 
 import os
+import yaml
 
 GRAPH_TYPE="complete_graph"
 GRAPH_ARGS=[5]
-
-g5k_options = {
-    "walltime": "03:00:00",
-    "dhcp": True,
-#    "force_deploy": "yes",
-}
-
-g5k_resources = {
-    "machines":[{
-        "roles": ["router", "telegraf", "chrony"],
-        "cluster": "econome",
-        "nodes": 1,
-        "primary_network": "n1",
-        "secondary_networks": []
-    },{
-        "roles": [
-            "control",
-            "registry",
-            "prometheus",
-            "grafana",
-            "telegraf",
-            "chrony-server"
-        ],
-        "cluster": "econome",
-        "nodes": 1,
-        "primary_network": "n1",
-        "secondary_networks": []
-    }],
-    "networks": [{
-        "id": "n1",
-        "roles": ["control_network", "internal_network"],
-        "type": "prod",
-        "site": "nantes"
-    },{#unused
-        "id": "n2",
-        "roles": ["internal_network"],
-        "type": "kavlan-local",
-        "site": "nancy"
-    }]
-}
-
-vagrant_resources = {
-    "machines":[{
-        "roles": ["router", "telegraf", "router-server","chrony"],
-        "flavor": "tiny",
-        "number": 1,
-        "networks": ["control_network", "internal_network"]
-    },{
-        "roles": ["router", "telegraf", "router-client", "chrony"],
-        "flavor": "tiny",
-        "number": 1,
-        "networks": ["control_network", "internal_network"]
-    },{
-        "roles": [
-            "control",
-            "registry",
-            "prometheus",
-            "grafana",
-            "telegraf",
-            "chrony-server"
-        ],
-        "flavor": "medium",
-        "number": 1,
-        "networks": ["control_network"]
-    }]
-}
-vagrant_options = {
-    "backend": "virtualbox",
-    "user": "root",
-    "box": "debian/jessie64"
-}
+BROKER="qpidd"
 
 tc = {
     "enable": True,
@@ -95,24 +26,24 @@ tc = {
 # vagrant you can't mix the two of them in the future we might want to
 # factorize it and have a switch on the command line to choose.
 @enostask(new=True)
-def g5k(env=None, **kwargs):
-    g5k_config = g5k_options
-    g5k_config.update({"resources": g5k_resources})
-    provider = G5k(g5k_config)
-    roles, networks = provider.init()
-    env["roles"] = roles
-    env["networks"] = networks
+def g5k(broker=BROKER, force=False, env=None, **kwargs):
+    with open("confs/g5k-%s.yaml" % broker) as f:
+        g5k_config = yaml.load(f)
+        provider = G5k(g5k_config)
+        roles, networks = provider.init(force_deploy=force)
+        env["roles"] = roles
+        env["networks"] = networks
 
 
 @enostask(new=True)
-def vagrant(env=None, **kwargs):
-    vagrant_config = vagrant_options
-    vagrant_config.update({"resources": vagrant_resources})
-    provider = Enos_vagrant(vagrant_config)
-    roles, networks = provider.init()
-    # saving the roles
-    env["roles"] = roles
-    env["networks"] = networks
+def vagrant(broker=BROKER, force=False, env=None, **kwargs):
+    with open("confs/vagrant-%s.yaml" % broker) as f:
+        vagrant_config = yaml.load(f)
+        provider = Enos_vagrant(vagrant_config)
+        roles, networks = provider.init(force_deploy=force)
+        # saving the roles
+        env["roles"] = roles
+        env["networks"] = networks
 
 
 @enostask()

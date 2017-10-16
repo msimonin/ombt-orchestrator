@@ -1,0 +1,48 @@
+walltime: 03:00:00
+dhcp: true
+job_name: qpid-dispatch-xp
+env_name: stretch-x64-nfs
+resources:
+  machines:
+    - roles:
+        - router
+        - telegraf
+        - chrony
+      cluster: econome
+      nodes: 1
+      primary_network: n1
+      secondary_networks: []
+    - roles:
+        - ombt-client
+        - telegraf
+        - chrony
+      cluster: econome
+      nodes: 1
+      primary_network: n1
+      secondary_networks: []
+    - roles:
+        - ombt-server
+        - telegraf
+        - chrony
+      cluster: econome
+      nodes: 1
+      primary_network: n1
+      secondary_networks: []
+    - roles:
+        - control
+        - registry
+        - prometheus
+        - grafana
+        - telegraf
+        - chrony-server
+      cluster: econome
+      nodes: 1
+      primary_network: n1
+      secondary_networks: []
+  networks:
+    - id: n1
+      roles:
+        - control_network
+        - internal_network
+      type: prod
+      site: nantes
