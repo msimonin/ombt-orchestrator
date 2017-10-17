@@ -1,0 +1,26 @@
+backend: virtualbox
+user: root
+box: bento/debian-9.1
+resources:
+  machines:
+    - roles:
+        - rabbitmq
+        - telegraf
+        - chrony
+      flavor: tiny
+      number: 1
+      networks:
+        - control_network
+        - internal_network
+    - roles:
+        - control
+        - registry
+        - telegraf
+        - prometheus
+        - grafana
+        - chrony-server
+      flavor: medium
+      number: 1
+      networks:
+        - control_network
+        - internal_network

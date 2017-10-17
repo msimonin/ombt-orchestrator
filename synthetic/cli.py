@@ -23,7 +23,8 @@ def deploy(broker, provider, force):
         "vagrant": t.vagrant
     }
     brokers = {
-        "qpidd": t.qpidd
+        "qpidd": t.qpidd,
+        "rabbitmq": t.rabbitmq
     }
     p = providers[provider]
     b = brokers[broker]
@@ -58,6 +59,13 @@ def inventory():
 def prepare():
     t.prepare()
 
+@cli.command()
+def qpidd():
+    t.qpidd()
+
+@cli.command()
+def rabbitmq():
+    t.rabbitmq()
 
 @cli.command()
 def destroy():

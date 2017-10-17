@@ -1,0 +1,5 @@
+---
+- name: RabbitMQ deployment
+  hosts: rabbitmq
+  roles:
+    - rabbitmq

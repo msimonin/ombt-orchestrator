@@ -67,7 +67,7 @@ def prepare(env=None, **kwargs):
 
 
 @enostask()
-def qpidd(env=None, *kwargs):
+def qpidd(env=None, **kwargs):
     roles = env["roles"]
     machines = [desc.alias for desc in roles["router"]]
     graph = generate(GRAPH_TYPE, *GRAPH_ARGS)
@@ -75,6 +75,12 @@ def qpidd(env=None, *kwargs):
     qpidd_confs = {"qpidd_confs": confs.values()}
     env.update(qpidd_confs)
     run_ansible(["ansible/qpidd.yml"], env["inventory"], extra_vars=qpidd_confs)
+
+
+@enostask()
+def rabbitmq(env=None, **kwargs):
+    print("RabbbitMQ deployment")
+    run_ansible(["ansible/rabbitmq.yml"], env["inventory"])
 
 
 @enostask()
