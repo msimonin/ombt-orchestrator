@@ -1,4 +1,7 @@
 ---
-- name: TEST
-  debug:
-    msg: Hello RabbitMQ
+- name: Install and start docker image "rabbitmq" 
+  docker_container:
+    name: rabbitmq
+    image: rabbitmq
+    network_mode: host
+    state: started
