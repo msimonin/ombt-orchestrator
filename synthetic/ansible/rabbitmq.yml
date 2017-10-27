@@ -1,5 +1,9 @@
 ---
 - name: RabbitMQ deployment
-  hosts: rabbitmq
+  hosts:
+    - amqp-queue
+    - amqp-control
   roles:
     - rabbitmq
+
+

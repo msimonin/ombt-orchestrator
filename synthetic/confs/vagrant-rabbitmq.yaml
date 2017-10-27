@@ -4,7 +4,7 @@ box: bento/debian-9.1
 resources:
   machines:
     - roles:
-        - rabbitmq
+        - amqp-queue
         - telegraf
         - chrony
       flavor: tiny
@@ -13,6 +13,26 @@ resources:
         - control_network
         - internal_network
     - roles:
+        - ombt-client
+        - telegraf
+        - chrony
+      flavor: tiny
+      number: 1
+      networks:
+        - control_network
+        - internal_network
+    - roles:
+        - ombt-server
+        - telegraf
+        - chrony
+      flavor: tiny
+      number: 1
+      networks:
+        - control_network
+        - internal_network
+    - roles:
+        - amqp-control
+        - ombt-control
         - control
         - registry
         - telegraf
