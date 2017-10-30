@@ -23,12 +23,13 @@ def deploy(broker, provider, force):
         "vagrant": t.vagrant
     }
     brokers = {
-        "qpidd": t.qpidd
+        "qpidd": t.qpidd,
+        "rabbitmq": t.rabbitmq
     }
     p = providers[provider]
     b = brokers[broker]
     if not b:
-        raise Exception("Broker not found, should be [qpidd]")
+        raise Exception("Broker not found, should be [qpidd|rabbitmq]")
     if not p:
         raise Exception("Provider not supported, should be [g5k|vagrant]")
     p(broker=broker, force=force)
@@ -58,6 +59,17 @@ def inventory():
 def prepare():
     t.prepare()
 
+@cli.command()
+def qpidd():
+    t.qpidd()
+
+@cli.command()
+def rabbitmq():
+    t.rabbitmq()
+
+@cli.command()
+def test_case_1():
+    t.test_case_1()
 
 @cli.command()
 def destroy():

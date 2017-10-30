@@ -67,7 +67,7 @@ def prepare(env=None, **kwargs):
 
 
 @enostask()
-def qpidd(env=None, *kwargs):
+def qpidd(env=None, **kwargs):
     roles = env["roles"]
     machines = [desc.alias for desc in roles["router"]]
     graph = generate(GRAPH_TYPE, *GRAPH_ARGS)
@@ -75,6 +75,22 @@ def qpidd(env=None, *kwargs):
     qpidd_confs = {"qpidd_confs": confs.values()}
     env.update(qpidd_confs)
     run_ansible(["ansible/qpidd.yml"], env["inventory"], extra_vars=qpidd_confs)
+    env["broker"] = "amqp"
+
+
+@enostask()
+def rabbitmq(env=None, **kwargs):
+    print("RabbbitMQ deployment")
+    run_ansible(["ansible/rabbitmq.yml"], env["inventory"])
+    env["broker"] = "rabbit"
+
+
+@enostask()
+def test_case_1(env=None, **kwargs):
+    # (avk) ombt needs queue addresses starting with the right transport protocol, (i.e. --url rabbit://<IP> for rabbitmq,  or --url amqp://<IP> for qpidd)
+    extra_vars = {"broker": env["broker"]}
+    print("Test-case1 deployment")
+    run_ansible(["ansible/test-case-1.yml"], env["inventory"], extra_vars=extra_vars)
 
 
 @enostask()
