@@ -3,5 +3,14 @@
   docker_container:
     name: rabbitmq
     image: rabbitmq
-    network_mode: host
+    ports:
+      - "{{rabbitmq_port}}:5672"
+      - "15672:15672"
     state: started
+
+- name: Wait for the bus to be started
+  wait_for:
+   host: "{{ hostvars[inventory_hostname]['ansible_' + control_network]['ipv4']['address'] }}"
+   port: "{{ rabbitmq_port }}"
+
+

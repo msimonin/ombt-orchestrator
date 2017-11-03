@@ -1,8 +1,7 @@
 ---
 - name: RabbitMQ deployment
   hosts:
-    - amqp-queue
-    - amqp-control
+    - bus
   roles:
     - rabbitmq
 
