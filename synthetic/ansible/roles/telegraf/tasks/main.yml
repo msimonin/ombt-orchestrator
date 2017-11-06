@@ -1,7 +1,7 @@
 ---
 - name: Configuring telegraf
-  copy:
-    src: telegraf.conf
+  template:
+    src: telegraf.conf.j2
     dest: /telegraf.conf
 
 - name: Install telegraf container

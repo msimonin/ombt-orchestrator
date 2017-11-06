@@ -1,8 +1,8 @@
 ---
-- name: Install and start docker image "rabbitmq" 
+- name: Install and start docker image "rabbitmq"
   docker_container:
     name: rabbitmq
-    image: rabbitmq
+    image: rabbitmq:3-management
     ports:
       - "{{rabbitmq_port}}:5672"
       - "15672:15672"
@@ -12,5 +12,4 @@
   wait_for:
    host: "{{ hostvars[inventory_hostname]['ansible_' + control_network]['ipv4']['address'] }}"
    port: "{{ rabbitmq_port }}"
-
 

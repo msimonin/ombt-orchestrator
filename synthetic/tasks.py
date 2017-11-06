@@ -26,7 +26,7 @@ tc = {
 # vagrant you can't mix the two of them in the future we might want to
 # factorize it and have a switch on the command line to choose.
 @enostask(new=True)
-def g5k(broker=BROKER, force=False, env=None, **kwargs):
+def g5k(env=None, broker=BROKER, force=False, **kwargs):
     with open("confs/g5k-%s.yaml" % broker) as f:
         g5k_config = yaml.load(f)
         provider = G5k(g5k_config)
@@ -36,7 +36,7 @@ def g5k(broker=BROKER, force=False, env=None, **kwargs):
 
 
 @enostask(new=True)
-def vagrant(broker=BROKER, force=False, env=None, **kwargs):
+def vagrant(env=None, broker=BROKER, force=False, **kwargs):
     with open("confs/vagrant-%s.yaml" % broker) as f:
         vagrant_config = yaml.load(f)
         provider = Enos_vagrant(vagrant_config)
@@ -55,15 +55,17 @@ def inventory(env=None, **kwargs):
 
 
 @enostask()
-def prepare(env=None, **kwargs):
+def prepare(env=None, broker=BROKER, **kwargs):
     # Generate inventory
     extra_vars = {
         "registry": {
             "type": "internal"
-        }
+        },
+        "broker": broker
     }
     # Deploys the monitoring stack and some common stuffs
     run_ansible(["ansible/prepare.yml"], env["inventory"], extra_vars=extra_vars)
+    env["broker"] = broker
 
 
 @enostask()
