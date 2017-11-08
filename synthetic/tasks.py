@@ -63,28 +63,25 @@ def prepare(env=None, broker=BROKER, **kwargs):
         },
         "broker": broker
     }
-    # Deploys the monitoring stack and some common stuffs
+    # Preparing the installation of the bus under evaluation
+    # Need to pass specific options
+    if broker == "rabbitmq":
+        # Nothing to do
+        pass
+    elif broker == "qpidd":
+        # Building the graph of routers
+        roles = env["roles"]
+        machines = [desc.alias for desc in roles["router"]]
+        graph = generate(GRAPH_TYPE, *GRAPH_ARGS)
+        confs = get_conf(graph, machines, round_robin)
+        qpidd_confs = {"qpidd_confs": confs.values()}
+        extra_vars.update(qpidd_confs)
+        env.update(qpidd_confs)
+    else:
+        raise Exception("Unknown broker chosen")
+
     run_ansible(["ansible/prepare.yml"], env["inventory"], extra_vars=extra_vars)
     env["broker"] = broker
-
-
-@enostask()
-def qpidd(env=None, **kwargs):
-    roles = env["roles"]
-    machines = [desc.alias for desc in roles["router"]]
-    graph = generate(GRAPH_TYPE, *GRAPH_ARGS)
-    confs = get_conf(graph, machines, round_robin)
-    qpidd_confs = {"qpidd_confs": confs.values()}
-    env.update(qpidd_confs)
-    run_ansible(["ansible/qpidd.yml"], env["inventory"], extra_vars=qpidd_confs)
-    env["broker"] = "amqp"
-
-
-@enostask()
-def rabbitmq(env=None, **kwargs):
-    print("RabbbitMQ deployment")
-    run_ansible(["ansible/rabbitmq.yml"], env["inventory"])
-    env["broker"] = "rabbit"
 
 
 @enostask()

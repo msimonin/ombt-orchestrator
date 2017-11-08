@@ -28,3 +28,15 @@
   roles:
     - rabbitmq
 
+- name: RabbitMQ deployment
+  hosts:
+    - bus
+  roles:
+    - { role: rabbitmq,
+        when: broker == "rabbitmq" }
+
+- name: Qpid dispatch deployment
+  hosts: router
+  roles:
+    - { role: qpidd,
+        when: broker == "qpidd" }

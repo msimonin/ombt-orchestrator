@@ -1,8 +1,0 @@
----
-- name: RabbitMQ deployment
-  hosts:
-    - bus
-  roles:
-    - rabbitmq
-
-

@@ -1,5 +1,0 @@
----
-- name: Qpid dispatch deployment
-  hosts: router
-  roles:
-    - qpidd
