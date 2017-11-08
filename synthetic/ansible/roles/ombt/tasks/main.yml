@@ -15,18 +15,20 @@
          docker run -d -ti beyondtheclouds/ombt
          --debug --control {{ broker }}://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}
          --url {{ broker }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} rpc-client
-  when: inventory_hostname in groups['ombt-client']
+  when: inventory_hostname in groups['ombt-client'] and ombt_args=="rpc-client"
+  with_sequence: count={{ nbr_clients }}
 
 - name: Install and start docker image "ombt" in server mode
   shell: >
          docker run -d -ti beyondtheclouds/ombt
          --debug --control {{ broker }}://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}
          --url {{ broker }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} rpc-server
-  when: inventory_hostname in groups['ombt-server']
+  when: inventory_hostname in groups['ombt-server'] and ombt_args=="rpc-server"
+  with_sequence: count={{ nbr_servers }}
 
 - name: Install and start docker image "ombt" as a controller
   shell: >
          docker run -d -ti beyondtheclouds/ombt
          --debug --control {{ broker }}://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}
-         --url {{ broker }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} controller rpc-call --calls 10
-  when: inventory_hostname in groups['ombt-control']
+         --url {{ broker }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} controller {{ call_type }} --calls {{ nbr_calls }}
+  when: inventory_hostname in groups['ombt-control'] and ombt_args=="controller"

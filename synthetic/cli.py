@@ -67,9 +67,22 @@ def qpidd():
 def rabbitmq():
     t.rabbitmq()
 
+
 @cli.command()
-def test_case_1():
-    t.test_case_1()
+@click.option("--nbr_clients",
+    default="1",
+    help="Number of clients that will de deployed")
+@click.option("--nbr_servers",
+    default="1",
+    help="Number of servers that will de deployed")
+@click.option("--call_type",
+    default="rpc_call",
+    help="rpc_call (blocking) or rpc_cast (non blocking) ")
+@click.option("--nbr_calls",
+    default="100",
+    help="number of calls/cast to execute ")
+def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls):
+    t.test_case_1(nbr_clients=nbr_clients, nbr_servers=nbr_servers, call_type=call_type, nbr_calls=nbr_calls)
 
 @cli.command()
 def destroy():

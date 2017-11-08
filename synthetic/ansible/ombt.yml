@@ -1,0 +1,10 @@
+---
+- name: Gathering facts of all nodes
+  hosts: all
+  tasks:
+  - setup:
+
+- name: Deploy Ombt
+  hosts: ombt-*
+  roles:
+    - ombt
