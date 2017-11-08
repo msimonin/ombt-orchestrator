@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import click
 import logging
 import tasks as t
@@ -34,7 +35,7 @@ def deploy(broker, provider, force):
         raise Exception("Provider not supported, should be [g5k|vagrant]")
     p(broker=broker, force=force)
     t.inventory()
-    t.prepare()
+    t.prepare(broker=broker)
     b()
 
 

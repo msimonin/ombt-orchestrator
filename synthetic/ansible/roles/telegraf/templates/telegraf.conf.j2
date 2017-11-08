@@ -27,6 +27,9 @@
   interfaces = []
 [[inputs.docker]]
   endpoint = "unix:///var/run/docker.sock"
+{% if broker is defined and broker=="rabbitmq" and inventory_hostname in groups['bus'] %}
+[[inputs.rabbitmq]]
+{% endif %}
 [[outputs.prometheus_client]]
   # Address to listen on
   listen = ":9273"
