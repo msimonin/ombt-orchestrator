@@ -83,7 +83,7 @@ def prepare(env=None, broker=BROKER, **kwargs):
     # use deploy of each role
     extra_vars.update({"enos_action": "deploy"})
 
-    run_ansible(["ansible/prepare.yml"], env["inventory"], extra_vars=extra_vars)
+    run_ansible(["ansible/site.yml"], env["inventory"], extra_vars=extra_vars)
     env["broker"] = broker
 
 
@@ -114,5 +114,11 @@ def validate(env=None, **kwargs):
 
 @enostask()
 def destroy(env=None, *kwargs):
-    run_ansible(["ansible/destroy.yml"], env["inventory"])
+    extra_vars = {}
+    # Call destroy on each component
+    extra_vars.update({
+        "enos_action": "destroy",
+        "broker": env["broker"]
+    })
+    run_ansible(["ansible/site.yml"], env["inventory"], extra_vars=extra_vars)
 

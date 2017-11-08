@@ -1,6 +1,0 @@
----
-- name: Destroy all
-  hosts: all
-  roles:
-    - { role: destroy,
-        tags: ['destroy']}

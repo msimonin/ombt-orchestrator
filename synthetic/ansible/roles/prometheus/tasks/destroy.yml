@@ -1,0 +1,11 @@
+---
+- name: Destroying prometheus container
+  docker_container:
+    name: "prometheus"
+    state: absent
+    force_kill: yes
+
+- name: Cleaning data directory
+  file:
+    path: /prometheus-data
+    state: absent

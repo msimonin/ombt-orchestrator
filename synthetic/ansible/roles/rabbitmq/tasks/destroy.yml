@@ -1,0 +1,7 @@
+---
+- name: Destroying rabbitmq container
+  docker_container:
+    name: "rabbitmq"
+    state: absent
+    force_kill: yes
+

@@ -1,0 +1,29 @@
+---
+- name: Start qdrouterd(s)
+  docker_container:
+    name: "{{ item.router_id }}"
+    state: absent
+    force_kill: yes
+  with_items: "{{ qpidd_confs }}"
+  when: item.machine == inventory_hostname
+
+#
+# Start the gui
+#
+- name: Start the web gui
+  docker_container:
+    image: msimonin/qpid-dispatch-gui
+    name: qpid-dispatch-gui
+    state: absent
+    force_kill: yes
+  when: inventory_hostname == groups['router'][0]
+
+#
+# Websockify AMQP listener
+#
+- name: Websockify AMQP listener
+  docker_container:
+    name: websockify
+    state: absent
+    force_kill: yes
+  when: inventory_hostname == groups['router'][0]

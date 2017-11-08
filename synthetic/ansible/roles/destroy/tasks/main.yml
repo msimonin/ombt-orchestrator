@@ -1,6 +1,0 @@
----
-- name: Stopping all containers
-  shell: docker ps -aq | xargs docker stop
-
-- name: Cleaning all containers
-  shell: docker ps -aq | xargs docker rm -f
