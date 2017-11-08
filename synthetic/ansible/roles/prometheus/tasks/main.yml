@@ -1,18 +1,2 @@
 ---
-- name: Configuring prometheus
-  template:
-    src: prometheus.yml.j2
-    dest: /prometheus.yml
-
-- name: Install prometheus container
-  docker_container:
-    name: "prometheus"
-    image: "prom/prometheus"
-    detach: True
-    ports:
-      - "9090:9090"
-    state: started
-    volumes:
-      - "/prometheus-data"
-      - "/prometheus.yml:/etc/prometheus/prometheus.yml:ro"
-
+- include: "{{ enos_action }}.yml"

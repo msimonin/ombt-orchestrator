@@ -80,6 +80,9 @@ def prepare(env=None, broker=BROKER, **kwargs):
     else:
         raise Exception("Unknown broker chosen")
 
+    # use deploy of each role
+    extra_vars.update({"enos_action": "deploy"})
+
     run_ansible(["ansible/prepare.yml"], env["inventory"], extra_vars=extra_vars)
     env["broker"] = broker
 
