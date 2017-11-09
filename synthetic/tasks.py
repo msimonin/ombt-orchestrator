@@ -113,12 +113,22 @@ def validate(env=None, **kwargs):
 
 
 @enostask()
-def destroy(env=None, *kwargs):
+def backup(env=None, **kwargs):
+    extra_vars = {
+        "enos_action": "backup",
+        "backup_dir": os.path.join(os.getcwd(), "current")
+    }
+    run_ansible(["ansible/site.yml"], env["inventory"], extra_vars=extra_vars)
+
+
+@enostask()
+def destroy(env=None, **kwargs):
     extra_vars = {}
     # Call destroy on each component
     extra_vars.update({
         "enos_action": "destroy",
-        "broker": env["broker"]
+        "broker": env["broker"],
+
     })
     run_ansible(["ansible/site.yml"], env["inventory"], extra_vars=extra_vars)
 

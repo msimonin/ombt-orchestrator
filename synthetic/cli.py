@@ -72,6 +72,10 @@ def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls):
 def destroy():
     t.destroy()
 
+@cli.command()
+def backup():
+    t.backup()
+
 
 if __name__ == "__main__":
     cli()

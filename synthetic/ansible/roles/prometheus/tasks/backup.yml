@@ -1,0 +1,20 @@
+---
+# NOTE(msimonin): using command since docker_container(state=stopped) has a
+# weird behaviour
+- name: Stopping prometheus
+  command: docker stop prometheus
+
+- name: Taring the data directory
+  archive:
+    path: /prometheus-data
+    dest: /prometheus-data.tar.gz
+
+- name: Fetching prometheus data
+  fetch:
+    src: /prometheus-data.tar.gz
+    dest: "{{ backup_dir }}/prometheus-data.tar.gz"
+    flat: yes
+
+- name: Starting prometheus
+  command: docker start prometheus
+
