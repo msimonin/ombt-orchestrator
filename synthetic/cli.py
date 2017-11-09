@@ -65,8 +65,12 @@ def prepare():
 @click.option("--nbr_calls",
     default="100",
     help="number of calls/cast to execute ")
-def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls):
-    t.test_case_1(nbr_clients=nbr_clients, nbr_servers=nbr_servers, call_type=call_type, nbr_calls=nbr_calls)
+@click.option("--delay",
+    default="0",
+    help="delay in seconds between each call/cast (default 0)")
+def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, delay):
+    t.test_case_1(nbr_clients=nbr_clients, nbr_servers=nbr_servers, call_type=call_type,
+                  nbr_calls=nbr_calls, delay=delay)
 
 @cli.command()
 def destroy():

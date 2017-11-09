@@ -27,7 +27,7 @@
   docker_container:
     image: beyondtheclouds/ombt
     command: "--debug --control {{ transport }}://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}
-         --url {{ transport }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} controller {{ call_type }} --calls {{ nbr_calls }}"
+         --url {{ transport }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} controller {{ call_type }} --calls {{ nbr_calls }} --pause {{ pause }} "
     name: ombt-controller
     detach: False
     network_mode: host

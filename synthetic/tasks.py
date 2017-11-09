@@ -88,7 +88,7 @@ def prepare(env=None, broker=BROKER, **kwargs):
 
 
 @enostask()
-def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, env=None, **kwargs):
+def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, delay, env=None, **kwargs):
     # (avk) ombt needs queue addresses starting with the right transport protocol, (i.e. --url rabbit://<IP> for rabbitmq,  or --url amqp://<IP> for qpidd)
     print("Test-case1 deployment")
     #run_ansible(["ansible/ombt.yml"], env["inventory"], extra_vars=extra_vars)
@@ -96,7 +96,8 @@ def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, env=None, **kwar
     run_ansible(["ansible/ombt.yml"], env["inventory"], {"broker": env["broker"], "nbr_servers": nbr_servers, "ombt_args": "rpc-server"})
     run_ansible(["ansible/ombt.yml"], env["inventory"], {"broker": env["broker"], "ombt_args": "controller",
                                                          "call_type": call_type,
-                                                         "nbr_calls": nbr_calls})
+                                                         "nbr_calls": nbr_calls,
+                                                         "pause": delay})
 
 @enostask()
 def emulate(env=None, **kwargs):
