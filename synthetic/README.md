@@ -1,4 +1,10 @@
-# qpid-dispatch evaluation script for G5k
+# Message bus evaluation framework
+
+## Context
+
+https://review.openstack.org/#/c/491818
+
+## Installation
 
 ```
 virtualenv venv
@@ -7,25 +13,20 @@ pip install -r requirements.txt
 
 ```
 
-# Deploys everything
-
-## Without the cli
+## Deploys everything
 
 ```
-# g5k
-python main.py g5k inventory prepare qpidda
+# on g5k
+./cli.py deploy --provider=g5k qpidd
 
-# vagrant
-python main.py vagrant inventory prepare qpidd
+# on vagrant
+./cli.py deploy --provider=vagrant qpidd
 ```
 
-## With the cli
+## Help
+
+List available actions:
 
 ```
-# g5k
-python cli.py deploy --provider=g5k qpidd
-
-# vagrant
-python cli.py deploy --provider=vagrant qpidd
+./cli.py
 ```
-
