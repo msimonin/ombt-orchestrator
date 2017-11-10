@@ -2,7 +2,7 @@
 - name: Install and start docker image "ombt" in client mode
   docker_container:
     image: beyondtheclouds/ombt
-    command: "--debug --control {{ transport }}://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}
+    command: "--debug --control rabbit://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}
          --url {{ transport }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} rpc-client"
     name: "ombt-client-{{ item }}"
     detach: True
@@ -14,7 +14,7 @@
 - name: Install and start docker image "ombt" in server mode
   docker_container:
     image: beyondtheclouds/ombt
-    command: "--debug --control {{ transport }}://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}
+    command: "--debug --control rabbit://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}
          --url {{ transport }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} rpc-server"
     name: "ombt-server-{{ item }}"
     detach: True
@@ -26,7 +26,7 @@
 - name: Install and start docker image "ombt" as a controller
   docker_container:
     image: beyondtheclouds/ombt
-    command: "--debug --control {{ transport }}://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}
+    command: "--debug --control rabbit://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}
          --url {{ transport }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} controller {{ call_type }} --calls {{ nbr_calls }} --pause {{ pause }} "
     name: ombt-controller
     detach: False

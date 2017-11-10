@@ -30,5 +30,3 @@
 #- name: Clear docker logs on control-node
 #  shell: truncate -s 0 /var/lib/docker/containers/*/*-json.log
 #  when: inventory_hostname in groups['ombt-control']
-
-git status
