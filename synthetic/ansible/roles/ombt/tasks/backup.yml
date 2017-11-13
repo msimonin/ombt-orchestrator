@@ -1,0 +1,37 @@
+---
+- name: Get docker logs from controller
+  shell: "docker logs {{ id }}-ombt-controller > /{{ id }}-controller-{{ inventory_hostname }}.log"
+  when: inventory_hostname in groups['ombt-control']
+
+- name: Fetching controller docker logs
+  fetch:
+    src: "/{{ id }}-controller-{{ inventory_hostname }}.log"
+    dest: "{{ backup_dir }}/{{ id }}-controller.log"
+    flat: yes
+  when: inventory_hostname in groups['ombt-control']
+
+- name: Get docker logs from clients
+  shell: "docker logs {{ id }}-ombt-client-{{ item }} > /{{ id }}-client-{{ inventory_hostname }}-{{ item }}.log"
+  when: inventory_hostname in groups['ombt-client']
+  with_sequence: count={{ nbr_clients }}
+
+- name: Fetching clients docker logs
+  fetch:
+    src: "/{{ id }}-client-{{ inventory_hostname }}-{{ item }}.log"
+    dest: "{{ backup_dir }}/{{ id }}-client-{{ inventory_hostname }}-{{ item }}.log"
+    flat: yes
+  when: inventory_hostname in groups['ombt-client']
+  with_sequence: count={{ nbr_clients }}
+
+- name: Get docker logs from servers
+  shell: "docker logs {{ id }}-ombt-server-{{ item }} > /{{ id }}-server-{{ inventory_hostname }}-{{ item }}.log"
+  when: inventory_hostname in groups['ombt-server']
+  with_sequence: count={{ nbr_servers }}
+
+- name: Fetching servers docker logs
+  fetch:
+    src: "/{{ id }}-server-{{ inventory_hostname }}-{{ item }}.log"
+    dest: "{{ backup_dir }}/{{ id }}-server-{{ inventory_hostname }}-{{ item }}.log"
+    flat: yes
+  when: inventory_hostname in groups['ombt-server']
+  with_sequence: count={{ nbr_servers }}

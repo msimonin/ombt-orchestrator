@@ -89,19 +89,29 @@ def prepare(env=None, broker=BROKER, **kwargs):
 
 @enostask()
 def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, delay, env=None, **kwargs):
-    # (avk) ombt needs queue addresses starting with the right transport protocol, (i.e. --url rabbit://<IP> for rabbitmq,  or --url amqp://<IP> for qpidd)
+    # (avk) ombt needs queue addresses starting with the right transport protocol,
+    # (i.e. --url rabbit://<IP> for rabbitmq,  or --url amqp://<IP> for qpidd)
     print("Test-case1 deployment")
-    #run_ansible(["ansible/ombt.yml"], env["inventory"], extra_vars=extra_vars)
-    run_ansible(["ansible/ombt.yml"], env["inventory"], {"broker": env["broker"], "nbr_clients": nbr_clients, "ombt_args": "rpc-client", "enos_action": "deploy"})
-    run_ansible(["ansible/ombt.yml"], env["inventory"], {"broker": env["broker"], "nbr_servers": nbr_servers, "ombt_args": "rpc-server", "enos_action": "deploy"})
-    run_ansible(["ansible/ombt.yml"], env["inventory"], {"broker": env["broker"], "ombt_args": "controller",
-                                                         "call_type": call_type,
-                                                         "nbr_calls": nbr_calls,
-                                                         "pause": delay,
-                                                         "enos_action": "deploy"})
+    import datetime
+    now = str(datetime.datetime.now()).replace(" ", "_")
+    #(avk)Comas are not allowed in docker names
+    now = now.replace(":", "_")
+    params = "".join(["_server_", nbr_servers, "_", "client_", nbr_clients, "_",
+                      call_type, "_", "nbr_call_", nbr_calls, "_", "delay_", delay])
+    id = "".join([now, params])
+    os.system("mkdir -p current/%s" % id)
+    extra_vars = {
+        "broker": env["broker"],
+        "nbr_clients": nbr_clients,
+        "nbr_servers": nbr_servers,
+        "id": id,
+        "backup_dir": os.path.join(os.getcwd(), "current/%s" % id),
+        "call_type": call_type,
+        "nbr_calls": nbr_calls,
+        "pause": delay,
+    }
+    run_ansible(["ansible/test_case_1.yml"], env["inventory"], extra_vars=extra_vars)
 
-    output = run_command("ombt-control", "docker logs ombt-controller", env["inventory"])
-    print(output["ok"]["enos-3"]["stdout"])
 
 @enostask()
 def emulate(env=None, **kwargs):
