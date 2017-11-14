@@ -1,0 +1,4 @@
+---
+- name: Remove ombt containers on all ombt-nodes
+  shell: docker ps -a | awk '{ print $1,$2 }' | grep beyondtheclouds/ombt | awk '{print $1 }' | xargs -I {} docker rm -f {}
+  when: inventory_hostname in groups['ombt-client'] or inventory_hostname in groups['ombt-server'] or inventory_hostname in groups['ombt-control']

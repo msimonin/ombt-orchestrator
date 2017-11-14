@@ -1,0 +1,54 @@
+---
+- name: Gathering facts of all nodes
+  hosts: all
+  tasks:
+  - setup:
+
+- name: Install servers
+  hosts: ombt-server
+  roles:
+    - ombt
+  vars:
+    - enos_action: deploy
+
+- name: Install clients
+  hosts: ombt-client
+  roles:
+    - ombt
+  vars:
+    - enos_action: deploy
+
+- name: Install controller
+  hosts: ombt-control
+  roles:
+    - ombt
+  vars:
+    - enos_action: deploy
+
+- name: Backup controller
+  hosts: ombt-control
+  roles:
+    - ombt
+  vars:
+    - enos_action: backup
+
+- name: Backup clients
+  hosts: ombt-client
+  roles:
+    - ombt
+  vars:
+    enos_action: backup
+
+- name: Backup servers
+  hosts: ombt-server
+  roles:
+    - ombt
+  vars:
+    enos_action: backup
+
+- name: Prometheus server
+  hosts: prometheus
+  roles:
+    - prometheus
+  vars:
+   - enos_action: backup
