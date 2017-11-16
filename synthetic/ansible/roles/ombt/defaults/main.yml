@@ -1,2 +1,5 @@
 ---
 transport: "{{ 'rabbit' if broker == 'rabbitmq' else 'amqp' }}"
+ombt_version: "Issue11"
+timeout: 600
+log_output: true
