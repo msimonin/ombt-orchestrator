@@ -142,7 +142,7 @@ def destroy(env=None, **kwargs):
     extra_vars.update({
         "enos_action": "destroy",
         "broker": env["broker"],
-
+        "qdr_confs": env.get("qdr_confs")
     })
     run_ansible(["ansible/site.yml"], env["inventory"], extra_vars=extra_vars)
     run_ansible(["ansible/ombt.yml"], env["inventory"], extra_vars=extra_vars)
