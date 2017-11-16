@@ -36,7 +36,8 @@
         when: broker == "rabbitmq" }
 
 - name: Qpid dispatch deployment
-  hosts: router
+  hosts:
+    - bus
   roles:
-    - { role: qpidd,
-        when: broker == "qpidd" }
+    - { role: qdr,
+        when: broker == "qdr" }

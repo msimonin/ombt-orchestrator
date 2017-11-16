@@ -17,10 +17,10 @@ pip install -r requirements.txt
 
 ```
 # on g5k
-./cli.py deploy --provider=g5k qpidd
+./cli.py deploy --provider=g5k qdr
 
 # on vagrant
-./cli.py deploy --provider=vagrant qpidd
+./cli.py deploy --provider=vagrant qdr
 ```
 
 ## Help

@@ -4,7 +4,7 @@
     name: "{{ item.router_id }}"
     state: absent
     force_kill: yes
-  with_items: "{{ qpidd_confs }}"
+  with_items: "{{ qdr_confs }}"
   when: item.machine == inventory_hostname
 
 #
@@ -16,7 +16,7 @@
     name: qpid-dispatch-gui
     state: absent
     force_kill: yes
-  when: inventory_hostname == groups['router'][0]
+  when: inventory_hostname == groups['bus'][0]
 
 #
 # Websockify AMQP listener
@@ -26,4 +26,4 @@
     name: websockify
     state: absent
     force_kill: yes
-  when: inventory_hostname == groups['router'][0]
+  when: inventory_hostname == groups['bus'][0]

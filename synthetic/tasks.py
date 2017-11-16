@@ -11,14 +11,13 @@ import os
 import yaml
 
 GRAPH_TYPE="complete_graph"
-GRAPH_ARGS=[5]
-BROKER="qpidd"
+GRAPH_ARGS=[4]
+BROKER="qdr"
 
 tc = {
     "enable": True,
     "default_delay": "20ms",
     "default_rate": "1gbit",
-    "groups": ["router-client", "router-server"]
 }
 
 
@@ -68,15 +67,15 @@ def prepare(env=None, broker=BROKER, **kwargs):
     if broker == "rabbitmq":
         # Nothing to do
         pass
-    elif broker == "qpidd":
+    elif broker == "qdr":
         # Building the graph of routers
         roles = env["roles"]
-        machines = [desc.alias for desc in roles["router"]]
+        machines = [desc.alias for desc in roles["bus"]]
         graph = generate(GRAPH_TYPE, *GRAPH_ARGS)
         confs = get_conf(graph, machines, round_robin)
-        qpidd_confs = {"qpidd_confs": confs.values()}
-        extra_vars.update(qpidd_confs)
-        env.update(qpidd_confs)
+        qdr_confs = {"qdr_confs": confs.values()}
+        extra_vars.update(qdr_confs)
+        env.update(qdr_confs)
     else:
         raise Exception("Unknown broker chosen")
 
@@ -90,7 +89,7 @@ def prepare(env=None, broker=BROKER, **kwargs):
 @enostask()
 def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, delay, env=None, **kwargs):
     # (avk) ombt needs queue addresses starting with the right transport protocol,
-    # (i.e. --url rabbit://<IP> for rabbitmq,  or --url amqp://<IP> for qpidd)
+    # (i.e. --url rabbit://<IP> for rabbitmq,  or --url amqp://<IP> for qdr)
     print("Test-case1 deployment")
     import datetime
     now = str(datetime.datetime.now()).replace(" ", "_")

@@ -72,4 +72,3 @@
     network_mode: host
     state: started
   when: inventory_hostname in groups['ombt-control']
-

@@ -5,10 +5,10 @@ env_name: stretch-x64-nfs
 resources:
   machines:
     - roles:
-        - router
+        - bus
         - telegraf
         - chrony
-      cluster: econome
+      cluster: paravance
       nodes: 1
       primary_network: n1
       secondary_networks: []
@@ -16,7 +16,7 @@ resources:
         - ombt-client
         - telegraf
         - chrony
-      cluster: econome
+      cluster: paravance
       nodes: 1
       primary_network: n1
       secondary_networks: []
@@ -24,18 +24,19 @@ resources:
         - ombt-server
         - telegraf
         - chrony
-      cluster: econome
+      cluster: paravance
       nodes: 1
       primary_network: n1
       secondary_networks: []
     - roles:
-        - control
+        - control-bus
+        - ombt-control
         - registry
         - prometheus
         - grafana
         - telegraf
         - chrony-server
-      cluster: econome
+      cluster: paravance
       nodes: 1
       primary_network: n1
       secondary_networks: []
@@ -45,4 +46,4 @@ resources:
         - control_network
         - internal_network
       type: prod
-      site: nantes
+      site: rennes

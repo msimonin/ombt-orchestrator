@@ -4,7 +4,7 @@ box: bento/debian-9.1
 resources:
   machines:
     - roles:
-        - router
+        - bus
         - telegraf
         - chrony
       flavor: tiny
@@ -14,12 +14,15 @@ resources:
         - internal_network
     - roles:
         - control
+        - control-bus
         - registry
         - telegraf
         - prometheus
         - grafana
         - chrony-server
-      flavor: medium
+        - ombt-client
+        - ombt-server
+      flavor: large
       number: 1
       networks:
         - control_network

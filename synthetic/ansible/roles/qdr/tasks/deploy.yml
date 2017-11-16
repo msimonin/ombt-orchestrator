@@ -8,7 +8,7 @@
   template:
     src: qdrouterd.conf.jinja2
     dest: "/etc/qpid-generator/{{ item.router_id }}.conf"
-  with_items: "{{ qpidd_confs }}"
+  with_items: "{{ qdr_confs }}"
   when: item.machine == inventory_hostname
 
 - name: Start qdrouterd(s)
@@ -19,7 +19,7 @@
       - "/etc/qpid-generator/{{ item.router_id }}.conf:/etc/qpid-dispatch/qdrouterd.conf"
     network_mode: host
     state: started
-  with_items: "{{ qpidd_confs }}"
+  with_items: "{{ qdr_confs }}"
   when: item.machine == inventory_hostname
 
 #
@@ -31,7 +31,7 @@
     name: qpid-dispatch-gui
     network_mode: host
     state: started
-  when: inventory_hostname == groups['router'][0]
+  when: inventory_hostname == groups['bus'][0]
 
 #
 # Websockify AMQP listener
@@ -43,4 +43,4 @@
     name: websockify
     network_mode: host
     state: started
-  when: inventory_hostname == groups['router'][0]
+  when: inventory_hostname == groups['bus'][0]
