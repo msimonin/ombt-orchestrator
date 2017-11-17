@@ -52,7 +52,17 @@ def prepare():
     t.prepare()
 
 
-@cli.command()
+@cli.command(help="""
+    Runs the test case 1 : one single large (distributed) target.
+
+    Workflow:
+
+        ./cli.py test_case_1 --nbr_clients 10 --nbr_servers 2
+
+        ./cli.py destroy
+
+        ./cli.py test_case_1 --nbr_clients 20 --nbr_servers 2
+""")
 @click.option("--nbr_clients",
     default="1",
     help="Number of clients that will de deployed")
@@ -60,17 +70,27 @@ def prepare():
     default="1",
     help="Number of servers that will de deployed")
 @click.option("--call_type",
-    default="rpc_call",
-    help="Rpc_call (blocking) or rpc_cast (non blocking) ")
+    default="rpc-call",
+    type=click.Choice(["rpc-call", "rpc-cast", "rpc-fanout"]),
+    help="Rpc_call (blocking) or rpc_cast (non blocking) [client] ")
 @click.option("--nbr_calls",
     default="100",
-    help="Number of calls/cast to execute ")
-@click.option("--delay",
-    default="0",
-    help="Delay in seconds between each call/cast (default 0)")
-def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, delay):
-    t.test_case_1(nbr_clients=nbr_clients, nbr_servers=nbr_servers, call_type=call_type,
-                  nbr_calls=nbr_calls, delay=delay)
+    help="Number of calls/cast to execute [client]")
+@click.option("--pause",
+    default=0.0,
+    help="Pause in second between each call [client]")
+@click.option("--timeout",
+    default=60,
+    help="Total time in second of the benchmark [controller]")
+@click.option("--version",
+    default="latest",
+    help="Version of ombt to use as a docker tag (will use beyondtheclouds:'vesion')")
+@click.option("--verbose",
+    is_flag=True,
+    help="Verbose mode will log every single message stat [client|server]")
+def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, version, verbose):
+    t.test_case_1(nbr_clients, nbr_servers, call_type,
+                  nbr_calls, pause, timeout, version, verbose=verbose)
 
 @cli.command()
 def destroy():

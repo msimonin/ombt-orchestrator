@@ -4,71 +4,24 @@
     path: /tmp/ombt-data
     mode: 0777
     state: directory
-  when: inventory_hostname in groups['ombt-client'] or inventory_hostname in groups['ombt-server'] or inventory_hostname in groups['ombt-control']
 
-- name: Install and start docker image "ombt" in client mode (with logs)
+- name: Create the client output log file (just in case)
+  file:
+    path: "/tmp/ombt-data/{{ item.log }}"
+    mode: 0777
+    state: touch
+  with_items: "{{ ombt_confs }}"
+  when: inventory_hostname == item.machine
+
+- name: Start ombt agent
   docker_container:
     image: "beyondtheclouds/ombt:{{ ombt_version }}"
-    command: "--debug --timeout {{ timeout }} --control rabbit://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}
-         --url {{ transport }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} rpc-client --output /home/ombt/ombt-data/{{ id }}-ombt-client-{{ item }}.log"
-    name: "{{ id }}-ombt-client-{{ item }}"
+    command: "{{ item.command }}"
+    name: "{{ item.name }}"
     detach: True
     network_mode: host
     state: started
     volumes:
-      - "/tmp/ombt-data:/home/ombt/ombt-data"
-  when: inventory_hostname in groups['ombt-client'] and log_output
-  with_sequence: count={{ nbr_clients }}
-
-- name: Install and start docker image "ombt" in client mode (no logs)
-  docker_container:
-    image: "beyondtheclouds/ombt:{{ ombt_version }}"
-    command: "--debug --timeout {{ timeout }} --control rabbit://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}
-         --url {{ transport }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} rpc-client"
-    name: "{{ id }}-ombt-client-{{ item }}"
-    detach: True
-    network_mode: host
-    state: started
-    volumes:
-      - "/tmp/ombt-data:/home/ombt/ombt-data"
-  when: inventory_hostname in groups['ombt-client'] and not log_output
-  with_sequence: count={{ nbr_clients }}
-
-- name: Install and start docker image "ombt" in server mode (with logs)
-  docker_container:
-    image: "beyondtheclouds/ombt:{{ ombt_version }}"
-    command: "--debug --timeout {{ timeout }} --control rabbit://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}
-         --url {{ transport }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} rpc-server --output /home/ombt/ombt-data/{{ id }}-ombt-server-{{ item }}.log"
-    name: "{{ id }}-ombt-server-{{ item }}"
-    detach: True
-    network_mode: host
-    state: started
-    volumes:
-      - "/tmp/ombt-data:/home/ombt/ombt-data"
-  when: inventory_hostname in groups['ombt-server'] and log_output
-  with_sequence: count={{ nbr_servers }}
-
-- name: Install and start docker image "ombt" in server mode (no logs)
-  docker_container:
-    image: "beyondtheclouds/ombt:{{ ombt_version }}"
-    command: "--debug --timeout {{ timeout }} --control rabbit://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}
-         --url {{ transport }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} rpc-server"
-    name: "{{ id }}-ombt-server-{{ item }}"
-    detach: True
-    network_mode: host
-    state: started
-    volumes:
-      - "/tmp/ombt-data:/home/ombt/ombt-data"
-  when: inventory_hostname in groups['ombt-server'] and not log_output
-  with_sequence: count={{ nbr_servers }}
-
-- name: Install and start docker image "ombt" as a controller
-  docker_container:
-    image: "beyondtheclouds/ombt:{{ ombt_version }}"
-    command: "--debug --timeout {{ timeout }} --control rabbit://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}
-         --url {{ transport }}://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} controller {{ call_type }} --calls {{ nbr_calls }} --pause {{ pause }} "
-    name: "{{ id }}-ombt-controller"
-    detach: False
-    network_mode: host
-    state: started
-  when: inventory_hostname in groups['ombt-control']
+      - "/tmp/ombt-data/{{ item.log }}:{{agent_log}}"
+  when: inventory_hostname == item.machine
+  with_items: "{{ ombt_confs }}"
