@@ -6,7 +6,7 @@
 
 - name: Fetching docker logs from the ombt agent
   fetch:
-    src: "/tmp/ombt-data/{{ item.log }}-controller-{{ inventory_hostname }}.log"
+    src: "/tmp/ombt-data/{{ item.name }}_docker.log"
     dest: "{{ backup_dir }}/{{ inventory_hostname }}_{{item.name}}_docker.log"
     flat: yes
   with_items: "{{ ombt_confs }}"

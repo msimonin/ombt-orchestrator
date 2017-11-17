@@ -95,20 +95,23 @@ def test_case_1(
     timeout,
     version,
     verbose=None,
+    backup_dir="backup",
     env=None, **kwargs):
-    iteration_id = "-".join([
+
+    iteration_id = str("-".join([
         "nbr_servers__%s" % nbr_servers,
         "nbr_clients__%s" % nbr_clients,
         "call_type__%s" % call_type,
         "nbr_calls__%s" % nbr_calls,
-        "pause__%s" % pause])
+        "pause__%s" % pause]))
 
     # Create the backup dir for this experiment
-    os.system("mkdir -p current/%s" % iteration_id)
-
+    # NOTE(msimonin): We don't need to identify the backup dir
+    # we could use a dedicated env name for that
+    backup_dir = os.path.join(os.getcwd(), "current/%s" % backup_dir)
+    os.system("mkdir -p %s" % backup_dir)
     # Global variables to the ombt deployment
     agent_log = "/home/ombt/ombt-data/client.log"
-    backup_dir = os.path.join(os.getcwd(), "current/%s" % iteration_id),
     extra_vars = {
         "backup_dir": backup_dir,
         "ombt_version": version,
@@ -152,17 +155,20 @@ def test_case_1(
         "number": int(nbr_clients),
         "machines": env["roles"]["ombt-client"],
         "type": "rpc-client",
-        "command_generator": generate_agent_command
+        "command_generator": generate_agent_command,
+        "detach": True
     }, {
         "number": int(nbr_servers),
         "machines": env["roles"]["ombt-server"],
         "type": "rpc-server",
-        "command_generator": generate_agent_command
+        "command_generator": generate_agent_command,
+        "detach": True
     }, {
         "number": 1,
         "machines": env["roles"]["ombt-control"],
         "type": "controller",
-        "command_generator": generate_controller_command
+        "command_generator": generate_controller_command,
+        "detach": False
     }]
 
     # Below we build the specific variables for each client/server
@@ -175,7 +181,8 @@ def test_case_1(
                 "machine": machines[agent_index % len(machines)].alias,
                 "command": agent_desc["command_generator"](agent_desc["type"]),
                 "name": agent_id,
-                "log": "%s.log" % agent_id
+                "log": "%s.log" % agent_id,
+                "detach": agent_desc["detach"]
             })
     extra_vars.update({"ombt_confs": ombt_confs})
     run_ansible(["ansible/test_case_1.yml"], env["inventory"], extra_vars=extra_vars)

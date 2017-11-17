@@ -18,7 +18,7 @@
     image: "beyondtheclouds/ombt:{{ ombt_version }}"
     command: "{{ item.command }}"
     name: "{{ item.name }}"
-    detach: True
+    detach: "{{ item.detach }}"
     network_mode: host
     state: started
     volumes:

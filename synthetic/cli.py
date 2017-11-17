@@ -18,14 +18,16 @@ def cli():
     help="Deploy with the given provider")
 @click.option("--force",
     is_flag=True)
-def deploy(broker, provider, force):
+@click.option("--env",
+    help="Use this environment directory instead of the default one")
+def deploy(broker, provider, force, env):
     providers = {
         "g5k": t.g5k,
         "vagrant": t.vagrant
     }
     p = providers[provider]
 
-    p(broker=broker, force=force)
+    p(broker=broker, force=force, env=env)
     t.inventory()
     t.prepare(broker=broker)
 
