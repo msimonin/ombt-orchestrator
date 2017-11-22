@@ -6,8 +6,11 @@
 
 - name: Taring the data directory
   archive:
-    path: /prometheus-data
+    path:
+      - /prometheus-data
+      - /prometheus.yml 
     dest: /prometheus-data.tar.gz
+
 
 - name: Fetching prometheus data
   fetch:
@@ -17,4 +20,3 @@
 
 - name: Starting prometheus
   command: docker start prometheus
-

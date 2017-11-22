@@ -1,11 +1,10 @@
-from enoslib.api import run_command, run_ansible, generate_inventory, emulate_network, validate_network
+from enoslib.api import run_ansible, generate_inventory, emulate_network, validate_network
 from enoslib.task import enostask
 from enoslib.infra.enos_g5k.provider import G5k
 from enoslib.infra.enos_vagrant.provider import Enos_vagrant
 from qpid_generator.graph import generate
 from qpid_generator.distribute import round_robin
 from qpid_generator.configurations import get_conf
-from utils.roles import to_enos_roles
 
 import os
 import yaml
@@ -87,29 +86,111 @@ def prepare(env=None, broker=BROKER, **kwargs):
 
 
 @enostask()
-def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, delay, env=None, **kwargs):
-    # (avk) ombt needs queue addresses starting with the right transport protocol,
-    # (i.e. --url rabbit://<IP> for rabbitmq,  or --url amqp://<IP> for qdr)
-    print("Test-case1 deployment")
-    import datetime
-    now = str(datetime.datetime.now()).replace(" ", "_")
-    #(avk)Comas are not allowed in docker names
-    now = now.replace(":", "_")
-    params = "".join(["_server_", nbr_servers, "_", "client_", nbr_clients, "_",
-                      call_type, "_", "nbr_call_", nbr_calls, "_", "delay_", delay])
-    id = "".join([now, params])
-    os.system("mkdir -p current/%s" % id)
+def test_case_1(
+    nbr_clients,
+    nbr_servers,
+    call_type,
+    nbr_calls,
+    pause,
+    timeout,
+    version,
+    verbose=None,
+    backup_dir="backup",
+    env=None, **kwargs):
+
+    iteration_id = str("-".join([
+        "nbr_servers__%s" % nbr_servers,
+        "nbr_clients__%s" % nbr_clients,
+        "call_type__%s" % call_type,
+        "nbr_calls__%s" % nbr_calls,
+        "pause__%s" % pause]))
+
+    # Create the backup dir for this experiment
+    # NOTE(msimonin): We don't need to identify the backup dir
+    # we could use a dedicated env name for that
+    backup_dir = os.path.join(os.getcwd(), "current/%s" % backup_dir)
+    os.system("mkdir -p %s" % backup_dir)
+    # Global variables to the ombt deployment
+    agent_log = "/home/ombt/ombt-data/client.log"
     extra_vars = {
-        "broker": env["broker"],
-        "nbr_clients": nbr_clients,
-        "nbr_servers": nbr_servers,
-        "id": id,
-        "backup_dir": os.path.join(os.getcwd(), "current/%s" % id),
-        "call_type": call_type,
-        "nbr_calls": nbr_calls,
-        "pause": delay,
+        "backup_dir": backup_dir,
+        "ombt_version": version,
+        "agent_log": agent_log
     }
+
+    if env["broker"] == "rabbitmq":
+        transport = "rabbit"
+    else:
+        transport = "amqp"
+    def generate_agent_command(agent_type):
+        """Build the command for the ombt agent [client|server]"""
+        command = ""
+        command += " --debug "
+        command += " --timeout %s " % timeout
+        # building the right url is delegated to ansible NOTE(msimonin): we
+        # could do it on python side but this will require to save all the
+        # facts
+        command += " --control rabbit://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} "
+        command += " --url %s://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}" % transport
+        command += " %s " % agent_type
+        # TODO(msimonin) make this conditionnal
+        if verbose:
+            command += " --output %s " % agent_log
+        return command
+
+
+    def generate_controller_command(agent_type):
+        """Build the command for the ombt agent [client|server]"""
+        command = ""
+        command += "--debug"
+        # building the right url is delegated to ansible
+        # NOTE(msimonin): we could do it on python side but this will require
+        # to save all the facts
+        command += " --control rabbit://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} "
+        command += " --url %s://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} " % transport
+        command += " controller "
+        command += " %s " % call_type
+        command += " --calls %s " % nbr_calls
+        command +=" --pause %s " % pause
+        return command
+
+    descs = [{
+        "number": int(nbr_clients),
+        "machines": env["roles"]["ombt-client"],
+        "type": "rpc-client",
+        "command_generator": generate_agent_command,
+        "detach": True
+    }, {
+        "number": int(nbr_servers),
+        "machines": env["roles"]["ombt-server"],
+        "type": "rpc-server",
+        "command_generator": generate_agent_command,
+        "detach": True
+    }, {
+        "number": 1,
+        "machines": env["roles"]["ombt-control"],
+        "type": "controller",
+        "command_generator": generate_controller_command,
+        "detach": False
+    }]
+
+    # Below we build the specific variables for each client/server
+    ombt_confs= []
+    for agent_desc in descs:
+        machines = agent_desc["machines"]
+        for agent_index in range(agent_desc["number"]):
+            agent_id = "%s-%s-%s" % (agent_desc["type"], agent_index, iteration_id)
+            ombt_confs.append({
+                "machine": machines[agent_index % len(machines)].alias,
+                "command": agent_desc["command_generator"](agent_desc["type"]),
+                "name": agent_id,
+                "log": "%s.log" % agent_id,
+                "detach": agent_desc["detach"]
+            })
+    extra_vars.update({"ombt_confs": ombt_confs})
     run_ansible(["ansible/test_case_1.yml"], env["inventory"], extra_vars=extra_vars)
+    # saving the conf
+    env["ombt_confs"] = ombt_confs
 
 
 @enostask()

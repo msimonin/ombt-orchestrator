@@ -13,15 +13,20 @@ pip install -r requirements.txt
 
 ```
 
-## Deploys everything
+## Workflow to run a test case
+
+Example:
 
 ```
-# on g5k
-./cli.py deploy --provider=g5k qdr
-
-# on vagrant
-./cli.py deploy --provider=vagrant qdr
+./cli.py deploy --provider=vagrant rabbitmq
+./cli.py test_case_1 --nbr_clients 10 --nbr_servers 2
+./cli.py destroy
+./cli.py deploy --provider=vagrant rabbitmq
+./cli.py test_case_1 --nbr_clients 20 --nbr_servers 2
 ```
+
+> It's possible to force an experimentation dir with `--env mydir`
+> Note also that scripting from python is also possible using the function defined in `task.py`
 
 ## Help
 
