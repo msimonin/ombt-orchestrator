@@ -59,12 +59,7 @@ def prepare():
 
     Workflow:
 
-        ./cli.py test_case_1 --nbr_clients 10 --nbr_servers 2
-
-        ./cli.py destroy
-
-        ./cli.py test_case_1 --nbr_clients 20 --nbr_servers 2
-""")
+    """)
 @click.option("--nbr_clients",
     default="1",
     help="Number of clients that will de deployed")
