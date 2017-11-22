@@ -118,7 +118,10 @@ def test_case_1(
         "agent_log": agent_log
     }
 
-
+    if env["broker"] == "rabbitmq":
+        transport = "rabbit"
+    else:
+        transport = "amqp"
     def generate_agent_command(agent_type):
         """Build the command for the ombt agent [client|server]"""
         command = ""
@@ -128,7 +131,7 @@ def test_case_1(
         # could do it on python side but this will require to save all the
         # facts
         command += " --control rabbit://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} "
-        command += " --url rabbit://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} "
+        command += " --url %s://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}" % transport
         command += " %s " % agent_type
         # TODO(msimonin) make this conditionnal
         if verbose:
@@ -140,11 +143,11 @@ def test_case_1(
         """Build the command for the ombt agent [client|server]"""
         command = ""
         command += "--debug"
-        # building the right url is delegated to ansible NOTE(msimonin): we
-        # could do it on python side but this will require to save all the
-        # facts
+        # building the right url is delegated to ansible
+        # NOTE(msimonin): we could do it on python side but this will require
+        # to save all the facts
         command += " --control rabbit://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} "
-        command += " --url rabbit://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} "
+        command += " --url %s://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} " % transport
         command += " controller "
         command += " %s " % call_type
         command += " --calls %s " % nbr_calls
