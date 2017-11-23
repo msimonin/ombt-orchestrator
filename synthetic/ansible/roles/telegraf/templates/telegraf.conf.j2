@@ -30,9 +30,6 @@
 {% if broker is defined and broker=="rabbitmq" and inventory_hostname in groups['bus'] %}
 [[inputs.rabbitmq]]
 {% endif %}
-[[outputs.prometheus_client]]
-  # Address to listen on
-  listen = ":9273"
-
-  # Expiration interval for each metric. 0 == no expiration
-  expiration_interval = "60s"
+[[outputs.influxdb]]
+  urls = ["http://{{ hostvars[groups['influxdb'][0]]['ansible_' + control_network].ipv4.address }}:8086"]
+  database = "telegraf"

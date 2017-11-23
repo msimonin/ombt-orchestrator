@@ -46,9 +46,9 @@
   vars:
     enos_action: backup
 
-- name: Prometheus server
-  hosts: prometheus
+- name: Backup influxdb
+  hosts: influxdb
   roles:
-    - prometheus
+    - influxdb
   vars:
    - enos_action: backup

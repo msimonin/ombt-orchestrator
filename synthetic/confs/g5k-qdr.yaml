@@ -32,7 +32,7 @@ resources:
         - control-bus
         - ombt-control
         - registry
-        - prometheus
+        - influxdb
         - grafana
         - telegraf
         - chrony-server
