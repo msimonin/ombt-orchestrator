@@ -106,8 +106,8 @@ def test_case_1(
         "pause__%s" % pause]))
 
     # Create the backup dir for this experiment
-    # NOTE(msimonin): We don't need to identify the backup dir
-    # we could use a dedicated env name for that
+    # NOTE(msimonin): We don't need to identify the backup dir we could use a
+    # dedicated env name for that
     backup_dir = os.path.join(os.getcwd(), "current/%s" % backup_dir)
     os.system("mkdir -p %s" % backup_dir)
     # Global variables to the ombt deployment
@@ -122,14 +122,15 @@ def test_case_1(
         transport = "rabbit"
     else:
         transport = "amqp"
+
     def generate_agent_command(agent_type):
         """Build the command for the ombt agent [client|server]"""
         command = ""
         command += " --debug "
         command += " --timeout %s " % timeout
-        # building the right url is delegated to ansible NOTE(msimonin): we
-        # could do it on python side but this will require to save all the
-        # facts
+        # building the right url is delegated to ansible
+        # NOTE(msimonin): we could do it on python side but this will require
+        # to save all the facts
         command += " --control rabbit://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} "
         command += " --url %s://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }}" % transport
         command += " %s " % agent_type
@@ -143,9 +144,7 @@ def test_case_1(
         """Build the command for the ombt agent [client|server]"""
         command = ""
         command += "--debug"
-        # building the right url is delegated to ansible
-        # NOTE(msimonin): we could do it on python side but this will require
-        # to save all the facts
+        command += " --timeout %s " % timeout
         command += " --control rabbit://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} "
         command += " --url %s://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} " % transport
         command += " controller "
