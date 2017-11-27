@@ -1,3 +1,2 @@
 ---
-prometheus_host: "{{ hostvars[groups['prometheus'][0]]['ansible_' + control_network]['ipv4']['address'] }}"
-grafana_vip: "{{ hostvars[groups['grafana'][0]]['ansible_' + control_network]['ipv4']['address'] }}"
+influxdb_host: "{{ hostvars[groups['influxdb'][0]]['ansible_' + control_network]['ipv4']['address'] }}"

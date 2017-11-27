@@ -17,7 +17,7 @@ resources:
         - control-bus
         - registry
         - telegraf
-        - prometheus
+        - influxdb
         - grafana
         - chrony-server
         - ombt-client

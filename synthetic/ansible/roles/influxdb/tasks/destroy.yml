@@ -1,11 +1,11 @@
 ---
-- name: Destroying prometheus container
+- name: Destroying influxdb container
   docker_container:
-    name: "prometheus"
+    name: "influxdb"
     state: absent
     force_kill: yes
 
 - name: Cleaning data directory
   file:
-    path: /prometheus-data
+    path: /influxdb-data
     state: absent

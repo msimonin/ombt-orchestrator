@@ -34,7 +34,7 @@ resources:
         - control
         - registry
         - telegraf
-        - prometheus
+        - influxdb
         - grafana
         - chrony-server
       cluster: paravance

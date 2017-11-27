@@ -4,13 +4,12 @@
     name: "grafana"
     image: "grafana/grafana"
     detach: True
-    ports:
-      - "3000:3000"
+    network_mode: host
     state: started
 
 - name: Waiting for the grafana service to become available
   wait_for:
-    host: "{{ grafana_vip }}"
+    host: localhost
     port: 3000
     state: started
     delay: 2
@@ -18,7 +17,7 @@
 
 - name: Add the data sources
   uri:
-    url: "http://{{ grafana_vip }}:3000/api/datasources"
+    url: "http://localhost:3000/api/datasources"
     user: admin
     password: admin
     force_basic_auth: yes
@@ -27,8 +26,8 @@
     # we workaround this issue :
     # https://github.com/ansible/ansible-modules-core/issues/265
     # by adding an empty space at the beginning of the json ...
-    body: " { \"name\": \"{{ item.name }}\", \"type\": \"prometheus\", \"url\": \"http://{{ item.host }}:{{ item.port }}\", \"access\": \"proxy\", \"isDefault\": true }"
+    body: " { \"name\": \"{{ item.name }}\", \"type\": \"influxdb\", \"url\": \"http://{{ item.host }}:{{ item.port }}\", \"access\": \"proxy\", \"isDefault\": true }"
     return_content: yes
     status_code: 200,409 # already added
   with_items:
-    - { name: prometheus, database: events, port: 9090, host: "{{prometheus_host }}" }
+    - { name: influxdb, database: telegraf, port: 8086, host: "{{ influxdb_host }}" }

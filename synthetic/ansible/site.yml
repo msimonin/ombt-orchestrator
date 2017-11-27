@@ -13,10 +13,10 @@
   roles:
     - chrony
 
-- name: Deploy prometheus
-  hosts: prometheus
+- name: Deploy influx
+  hosts: influxdb
   roles:
-    - prometheus
+    - influxdb
 
 - name: Deploy the grafana
   hosts: grafana
