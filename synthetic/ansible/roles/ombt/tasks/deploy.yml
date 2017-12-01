@@ -15,7 +15,7 @@
 
 - name: Start ombt agent
   docker_container:
-    image: "beyondtheclouds/ombt:{{ ombt_version }}"
+    image: "avankemp/ombt:{{ ombt_version }}"
     command: "{{ item.command }}"
     name: "{{ item.name }}"
     detach: "{{ item.detach }}"

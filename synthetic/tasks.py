@@ -126,7 +126,7 @@ def test_case_1(
     def generate_agent_command(agent_type):
         """Build the command for the ombt agent [client|server]"""
         command = ""
-        command += " --debug "
+        #command += " --debug "
         command += " --timeout %s " % timeout
         # building the right url is delegated to ansible
         # NOTE(msimonin): we could do it on python side but this will require
@@ -141,16 +141,18 @@ def test_case_1(
 
 
     def generate_controller_command(agent_type):
-        """Build the command for the ombt agent [client|server]"""
+        """Build the command for the ombt controller"""
         command = ""
-        command += "--debug"
+        #command += "--debug"
         command += " --timeout %s " % timeout
         command += " --control rabbit://{{ hostvars[groups['control-bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} "
         command += " --url %s://{{ hostvars[groups['bus'][0]]['ansible_' + control_network]['ipv4']['address'] }}:{{ rabbitmq_port }} " % transport
         command += " controller "
+        command += " --output %s " % agent_log
         command += " %s " % call_type
         command += " --calls %s " % nbr_calls
         command +=" --pause %s " % pause
+
         return command
 
     descs = [{
