@@ -13,6 +13,18 @@ GRAPH_TYPE="complete_graph"
 GRAPH_ARGS=[4]
 BROKER="qdr"
 
+# DEFAULT PARAMETERS
+NBR_CLIENTS=1
+NBR_SERVERS=1
+CALL_TYPE="rpc-call"
+NBR_CALLS="100"
+PAUSE=0
+TIMEOUT=60
+VERSION="latest"
+VERBOSE=None
+BACKUP_DIR="backup"
+
+
 tc = {
     "enable": True,
     "default_delay": "20ms",
@@ -87,15 +99,15 @@ def prepare(env=None, broker=BROKER, **kwargs):
 
 @enostask()
 def test_case_1(
-    nbr_clients,
-    nbr_servers,
-    call_type,
-    nbr_calls,
-    pause,
-    timeout,
-    version,
-    verbose=None,
-    backup_dir="backup",
+    nbr_clients=NBR_CLIENTS,
+    nbr_servers=NBR_SERVERS,
+    call_type=CALL_TYPE,
+    nbr_calls=NBR_CALLS,
+    pause=PAUSE,
+    timeout=TIMEOUT,
+    version=VERSION,
+    verbose=VERBOSE,
+    backup_dir=BACKUP_DIR,
     env=None, **kwargs):
 
     iteration_id = str("-".join([
@@ -123,6 +135,8 @@ def test_case_1(
     else:
         transport = "amqp"
 
+    # NOTE(msimonin): We may want to capture this in a instance of a OmbtAgent
+    # class
     def generate_agent_command(agent_type):
         """Build the command for the ombt agent [client|server]"""
         command = ""
@@ -152,7 +166,6 @@ def test_case_1(
         command += " %s " % call_type
         command += " --calls %s " % nbr_calls
         command +=" --pause %s " % pause
-
         return command
 
     descs = [{

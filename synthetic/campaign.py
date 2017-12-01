@@ -5,21 +5,13 @@ import tasks as t
 import os
 import logging
 
-# PARAMETERS = {
-#     "nbr_clients": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50],
-#     "nbr_servers": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-#     "call_type": ["rpc-cast", "rpc-call"],
-#     "nbr_calls": [100000],
-#     "pause": [0],
-#     "timeout": [8000],
-#     "version": ["avankemp/ombt:avk_8dc7f42"]
-# }
-
 PARAMETERS = {
-    "nbr_clients": [1, 2],
-    "nbr_servers": [1, 2],
+    #"nbr_clients": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50],
+    "nbr_clients": [1, 5],
+    # "nbr_servers": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    "nbr_servers": [1],
     "call_type": ["rpc-cast", "rpc-call"],
-    "nbr_calls": [100],
+    "nbr_calls": [10],
     "pause": [0],
     "timeout": [8000],
     "version": ["avankemp/ombt:avk_8dc7f42"]
@@ -27,51 +19,69 @@ PARAMETERS = {
 
 BROKER = "rabbitmq"
 
+BROKER="rabbitmq"
+TEST_DIR = "tc1"
+
+def generate_id(params):
+    return "-".join([
+        "%s__%s" % (k, v) for k, v in sorted(params.items())
+    ])
+
+def accept(params):
+    call_ratio_max = 3
+    cast_ratio_max = 3
+    call_type = params["call_type"]
+    if call_type == "rpc-call":
+        if not params["pause"]:
+            # maximum rate
+            return call_ratio_max * params["nbr_servers"] >=  params["nbr_clients"]
+        else:
+            # we can afford more clients
+            # based on our estimation a client sends 200msgs at full rate
+            return call_ratio_max * params["nbr_servers"] >= params["nbr_clients"] * 200 * params["pause"]
+    else:
+        if not params["pause"]:
+            # maximum rate
+            return cast_ratio_max * params["nbr_servers"] >=  params["nbr_clients"]
+        else:
+            # we can afford more clients
+            # based on our estimation a client sends 200msgs at full rate
+            return cast_ratio_max * params["nbr_servers"] >= params["nbr_clients"] * 1000 * params["pause"]
+
+
 if __name__ == "__main__":
-    # We probably want to force the experimentation directory
-    # t.vagrant(broker=BROKER, env="test_case_1")
     logging.basicConfig(level=logging.DEBUG)
     initial_sweep = sweep(PARAMETERS)
     sweeps = sorted(initial_sweep, key=lambda k: k['nbr_clients'])
 
-    t.vagrant(broker=BROKER)
-    t.inventory()
-    t.prepare(broker=BROKER)
-
     sweeper = ParamSweeper(
         # Maybe puts the sweeper under the experimentation directory
         # This should be current/sweeps
-        persistence_dir=os.path.join("sweeps"),
+        persistence_dir=os.path.join("%s/sweeps" % TEST_DIR),
         sweeps=sweeps,
         save_sweeps=True,
         name="test_case_1"
     )
+
     params = sweeper.get_next()
     while params:
-        t.test_case_1(params["nbr_clients"], params["nbr_servers"], params["call_type"], params["nbr_calls"],
-                      params["pause"], params["timeout"], params["version"], verbose=False, backup_dir="backup_dir")
-        sweeper.done(params)
-        t.destroy()
-
-        t.vagrant(broker=BROKER)
+        if not accept(params):
+            # skipping element
+            # Note that the semantic of sweeper.skip is different
+            sweeper.done(params)
+            params = sweeper.get_next()
+            continue
+        # cleaning old backup_dir
+        params.pop("backup_dir", None)
+        params.update({
+            "backup_dir": generate_id(params)
+        })
+        t.vagrant(broker=BROKER, env=TEST_DIR)
         t.inventory()
         t.prepare(broker=BROKER)
-        # t.test_case_1(<fill with the right params>)
-        # Note that if we use keywords arguments for test_case_1
-        # we could just use **PARAMETERS here :)
-        #t.destroy()
-
-        # only reapplying the prepare phase *should* be fine
-        # but don't forget to change the backup directory
-        # since everything will be under the same xp directory
-        # t.prepare()
+        print(params)
+        t.test_case_1(**params)
+        sweeper.done(params)
         params = sweeper.get_next()
-
-        # "nbr_clients": [1, 10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000],
-        # "nbr_servers": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 50, 100],
-        # "call_type": ["rpc-cast", "rpc-call"],
-        # "nbr_calls": [500000],
-        # "pause": [0],
-        # "timeout": [3600],
-        # "version": ["avk_8dc7f42"]
+        t.destroy()
 
