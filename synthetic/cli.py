@@ -61,33 +61,39 @@ def prepare():
 
     """)
 @click.option("--nbr_clients",
-    default="1",
+    default=t.NBR_CLIENTS,
     help="Number of clients that will de deployed")
 @click.option("--nbr_servers",
-    default="1",
+    default=t.NBR_SERVERS,
     help="Number of servers that will de deployed")
 @click.option("--call_type",
-    default="rpc-call",
+    default=t.CALL_TYPE,
     type=click.Choice(["rpc-call", "rpc-cast", "rpc-fanout"]),
     help="Rpc_call (blocking) or rpc_cast (non blocking) [client] ")
 @click.option("--nbr_calls",
-    default="100",
+    default=t.NBR_CALLS,
     help="Number of calls/cast to execute [client]")
 @click.option("--pause",
-    default=0.0,
+    default=t.PAUSE,
     help="Pause in second between each call [client]")
 @click.option("--timeout",
-    default=60,
+    default=t.TIMEOUT,
     help="Total time in second of the benchmark [controller]")
 @click.option("--version",
-    default="latest",
+    default=t.VERSION,
     help="Version of ombt to use as a docker tag (will use beyondtheclouds:'vesion')")
 @click.option("--verbose",
     is_flag=True,
     help="Verbose mode will log every single message stat [client|server]")
 def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, version, verbose):
-    t.test_case_1(nbr_clients, nbr_servers, call_type,
-                  nbr_calls, pause, timeout, version, verbose=verbose)
+    t.test_case_1(nbr_clients=nbr_clients,
+                  nbr_servers=nbr_servers,
+                  call_type=call_type,
+                  nbr_calls=nbr_calls,
+                  pause=pause,
+                  timeout=timeout,
+                  version=version,
+                  verbose=verbose)
 
 @cli.command()
 def destroy():
