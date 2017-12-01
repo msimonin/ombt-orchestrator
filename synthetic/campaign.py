@@ -5,14 +5,24 @@ import tasks as t
 import os
 import logging
 
+# PARAMETERS = {
+#     "nbr_clients": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50],
+#     "nbr_servers": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+#     "call_type": ["rpc-cast", "rpc-call"],
+#     "nbr_calls": [100000],
+#     "pause": [0],
+#     "timeout": [8000],
+#     "version": ["avankemp/ombt:avk_8dc7f42"]
+# }
+
 PARAMETERS = {
-    "nbr_clients": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50],
-    "nbr_servers": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    "nbr_clients": [1, 2],
+    "nbr_servers": [1, 2],
     "call_type": ["rpc-cast", "rpc-call"],
-    "nbr_calls": [100000],
+    "nbr_calls": [100],
     "pause": [0],
     "timeout": [8000],
-    "version": ["avk_8dc7f42"]
+    "version": ["avankemp/ombt:avk_8dc7f42"]
 }
 
 BROKER = "rabbitmq"
@@ -24,7 +34,7 @@ if __name__ == "__main__":
     initial_sweep = sweep(PARAMETERS)
     sweeps = sorted(initial_sweep, key=lambda k: k['nbr_clients'])
 
-    t.g5k(broker=BROKER)
+    t.vagrant(broker=BROKER)
     t.inventory()
     t.prepare(broker=BROKER)
 
@@ -43,7 +53,7 @@ if __name__ == "__main__":
         sweeper.done(params)
         t.destroy()
 
-        t.g5k(broker=BROKER)
+        t.vagrant(broker=BROKER)
         t.inventory()
         t.prepare(broker=BROKER)
         # t.test_case_1(<fill with the right params>)
