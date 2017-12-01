@@ -23,8 +23,12 @@ BROKER="rabbitmq"
 TEST_DIR = "tc1"
 
 def generate_id(params):
+    def clean(s):
+        return str(s).replace("/", "_sl_")\
+         .replace(":", "_sc_")
+
     return "-".join([
-        "%s__%s" % (k, v) for k, v in sorted(params.items())
+        "%s__%s" % (clean(k), clean(v)) for k, v in sorted(params.items())
     ])
 
 def accept(params):
