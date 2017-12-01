@@ -1,6 +1,16 @@
 [global_tags]
+{% if inventory_hostname in groups["ombt-server"] %}
+ role = "ombt-server"
+{% elif inventory_hostname in groups["ombt-client"] %}
+  role = "ombt-client"
+{% elif inventory_hostname in groups["bus"] %}
+  role = "bus"
+{% else %}
+  role = "default"
+{% endif %}
+
 [agent]
-  interval = "10s"
+  interval = "5s"
   round_interval = true
   metric_batch_size = 1000
   metric_buffer_limit = 10000
