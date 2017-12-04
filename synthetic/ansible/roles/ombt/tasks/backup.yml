@@ -1,12 +1,12 @@
 ---
 - name: Get docker logs from the ombt agent
-  shell: "docker logs {{ item.name  }} > /tmp/ombt-data/{{ item.name }}_docker.log"
+  shell: "docker logs {{ item.name  }} > {{ item.log | dirname }}/{{ item.name }}_docker.log"
   with_items: "{{ ombt_confs }}"
   when: inventory_hostname == item.machine
 
 - name: Fetching docker logs from the ombt agent
   fetch:
-    src: "/tmp/ombt-data/{{ item.name }}_docker.log"
+    src: "{{ item.log | dirname }}/{{ item.name }}_docker.log"
     dest: "{{ backup_dir }}/{{ inventory_hostname }}_{{item.name}}_docker.log"
     flat: yes
   with_items: "{{ ombt_confs }}"
@@ -14,8 +14,8 @@
 
 - name: Fetching omt agent output log
   fetch:
-    src: "/tmp/ombt-data/{{ item.log }}"
-    dest: "{{ backup_dir }}/{{ inventory_hostname }}_{{item.log}}"
+    src: "{{ item.log }}"
+    dest: "{{ backup_dir }}/{{ inventory_hostname }}_{{ item.name }}.log"
     flat: yes
   with_items: "{{ ombt_confs }}"
   when: inventory_hostname == item.machine

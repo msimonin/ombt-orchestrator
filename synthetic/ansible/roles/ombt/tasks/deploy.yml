@@ -1,13 +1,14 @@
 ---
 - name: Create ombt-data directory
   file:
-    path: /tmp/ombt-data
+    path: "{{ item.log | dirname }}"
     mode: 0777
     state: directory
+  with_items: "{{ ombt_confs }}"
 
 - name: Create the client output log file (just in case)
   file:
-    path: "/tmp/ombt-data/{{ item.log }}"
+    path: "{{ item.log }}"
     mode: 0777
     state: touch
   with_items: "{{ ombt_confs }}"
@@ -22,6 +23,6 @@
     network_mode: host
     state: started
     volumes:
-      - "/tmp/ombt-data/{{ item.log }}:{{agent_log}}"
+      - "{{ item.log }}:{{item.docker_log}}"
   when: inventory_hostname == item.machine
   with_items: "{{ ombt_confs }}"
