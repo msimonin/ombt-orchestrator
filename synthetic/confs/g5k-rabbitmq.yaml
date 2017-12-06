@@ -1,34 +1,10 @@
-reservation: "2017-11-30 21:00:00"
-walltime: "09:50:00"
+reservation: "2017-12-06 14:40:00"
+walltime: "2:00:00"
 dhcp: true
-job_name: rabbitmq-xp
+job_name: rabbitmq-xp-daytest
 env_name: debian9-x64-nfs
 resources:
   machines:
-    - roles:
-        - bus
-        - telegraf
-        - chrony
-      cluster: paranoia
-      nodes: 1
-      primary_network: n1
-      secondary_networks: []
-    - roles:
-        - ombt-client
-        - telegraf
-        - chrony
-      cluster: paranoia
-      nodes: 3
-      primary_network: n1
-      secondary_networks: []
-    - roles:
-        - ombt-server
-        - telegraf
-        - chrony
-      cluster: paranoia
-      nodes: 3
-      primary_network: n1
-      secondary_networks: []
     - roles:
         - control-bus
         - ombt-control
@@ -38,7 +14,31 @@ resources:
         - influxdb
         - grafana
         - chrony-server
-      cluster: paranoia
+      cluster: parasilo
+      nodes: 1
+      primary_network: n1
+      secondary_networks: []
+    - roles:
+        - bus
+        - telegraf
+        - chrony
+      cluster: parasilo
+      nodes: 1
+      primary_network: n1
+      secondary_networks: []
+    - roles:
+        - ombt-server
+        - telegraf
+        - chrony
+      cluster: parasilo
+      nodes: 1 
+      primary_network: n1
+      secondary_networks: []
+    - roles:
+        - ombt-client
+        - telegraf
+        - chrony
+      cluster: parasilo
       nodes: 1
       primary_network: n1
       secondary_networks: []

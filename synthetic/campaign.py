@@ -6,15 +6,15 @@ import os
 import logging
 
 PARAMETERS = {
-    #"nbr_clients": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50],
-    "nbr_clients": [1, 5],
-    # "nbr_servers": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    "nbr_servers": [1],
+    #"nbr_servers": [1, 5, 10, 50, 100, 200, 300, 400, 500],
+    "nbr_servers": [1, 5, 10, 50, 100],
+    #"nbr_clients": [1, 10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000],
+    "nbr_clients": [1, 10, 50, 100, 200, 300, 400, 500],
     "call_type": ["rpc-cast", "rpc-call"],
-    "nbr_calls": [10],
+    "nbr_calls": [100],
     "pause": [0],
     "timeout": [8000],
-    "version": ["avankemp/ombt:avk_8dc7f42"]
+    "version": ["avankemp/ombt:TestResults_todict_fixed"]
 }
 
 BROKER = "rabbitmq"
@@ -52,12 +52,14 @@ def accept(params):
             # based on our estimation a client sends 200msgs at full rate
             return cast_ratio_max * params["nbr_servers"] >= params["nbr_clients"] * 1000 * params["pause"]
 
+#Function to pass in parameter to ParamSweeper.get_next()
+#Give the illusion that the Set of params is sorted by nbr_clients
+def sort_params_by_nbr_clients(set):
+    return sorted((list(set)), key=lambda k: k['nbr_clients'])
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    initial_sweep = sweep(PARAMETERS)
-    sweeps = sorted(initial_sweep, key=lambda k: k['nbr_clients'])
-
+    sweeps = sweep(PARAMETERS)
     sweeper = ParamSweeper(
         # Maybe puts the sweeper under the experimentation directory
         # This should be current/sweeps
@@ -67,25 +69,27 @@ if __name__ == "__main__":
         name="test_case_1"
     )
 
-    params = sweeper.get_next()
+    #Get the next parameter in the set of all remaining params
+    #This set is temporary viewed as sorted List with this filter function.
+    params = sweeper.get_next(sort_params_by_nbr_clients)    
     while params:
         if not accept(params):
             # skipping element
             # Note that the semantic of sweeper.skip is different
             sweeper.done(params)
-            params = sweeper.get_next()
+            params = sweeper.get_next(sort_params_by_nbr_clients)
             continue
         # cleaning old backup_dir
         params.pop("backup_dir", None)
         params.update({
             "backup_dir": generate_id(params)
         })
-        t.vagrant(broker=BROKER, env=TEST_DIR)
+	t.g5k(broker=BROKER, env=TEST_DIR)
         t.inventory()
         t.prepare(broker=BROKER)
         print(params)
         t.test_case_1(**params)
         sweeper.done(params)
-        params = sweeper.get_next()
+        params = sweeper.get_next(sort_params_by_nbr_clients)
         t.destroy()
 
