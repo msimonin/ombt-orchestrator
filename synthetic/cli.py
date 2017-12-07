@@ -11,7 +11,7 @@ def cli():
     pass
 
 
-@cli.command()
+@cli.command(help="Claim resources from a provider and configure them")
 @click.argument('broker')
 @click.option("--provider",
     default="vagrant",
@@ -32,33 +32,30 @@ def deploy(broker, provider, force, env):
     t.prepare(broker=broker)
 
 
-@cli.command()
+@cli.command(help="Claim resources on Grid'5000 (from a frontend)")
 @click.option("--force", is_flag=True, help="force redeploy")
 def g5k(force):
     t.g5k(force)
 
 
-@cli.command()
+@cli.command(help="Claim resources on vagrant (local machine)")
 @click.option("--force",is_flag=True, help="force redeploy")
 def vagrant(force):
     t.vagrant(force)
 
 
-@cli.command()
+@cli.command(help="Generate the Ansible inventory file. [after g5k,vagrant]")
 def inventory():
     t.inventory()
 
 
-@cli.command()
+@cli.command(help="Configure the resources.[after g5k,vagrant and inventory]")
 def prepare():
     t.prepare()
 
 
 @cli.command(help="""
     Runs the test case 1 : one single large (distributed) target.
-
-    Workflow:
-
     """)
 @click.option("--nbr_clients",
     default=t.NBR_CLIENTS,
@@ -95,11 +92,11 @@ def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, 
                   version=version,
                   verbose=verbose)
 
-@cli.command()
+@cli.command(help="Destroy all the running dockers (not destroying the resources)")
 def destroy():
     t.destroy()
 
-@cli.command()
+@cli.command(help="Backup the environment")
 def backup():
     t.backup()
 
