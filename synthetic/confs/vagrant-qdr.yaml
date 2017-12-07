@@ -21,6 +21,7 @@ resources:
         - grafana
         - chrony-server
         - ombt-client
+        - ombt-control
         - ombt-server
       flavor: large
       number: 1

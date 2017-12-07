@@ -1,20 +1,20 @@
 ---
 - name: Install and start docker image "rabbitmq"
   docker_container:
-    name: rabbitmq
+    name: rabbitmq-control
     image: rabbitmq:3-management
     ports:
       - "{{ item.port}}:5672"
       - "{{ item.management_port }}:15672"
     state: started
-  with_items: "{{ bus_conf }}"
+  with_items: "{{ control_bus_conf }}"
   when: item.machine == inventory_hostname
 
 - name: Wait for the bus to be started
   wait_for:
     host: "{{ hostvars[inventory_hostname]['ansible_' + control_network]['ipv4']['address'] }}"
     port: "{{ item.port }}"
-  with_items: "{{ bus_conf }}"
+  with_items: "{{ control_bus_conf }}"
   when: item.machine == inventory_hostname
 
 

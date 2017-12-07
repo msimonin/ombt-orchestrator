@@ -8,7 +8,7 @@
   template:
     src: qdrouterd.conf.jinja2
     dest: "/etc/qpid-generator/{{ item.router_id }}.conf"
-  with_items: "{{ qdr_confs }}"
+  with_items: "{{ bus_conf }}"
   when: item.machine == inventory_hostname
 
 - name: Start qdrouterd(s)
@@ -19,7 +19,7 @@
       - "/etc/qpid-generator/{{ item.router_id }}.conf:/etc/qpid-dispatch/qdrouterd.conf"
     network_mode: host
     state: started
-  with_items: "{{ qdr_confs }}"
+  with_items: "{{ bus_conf }}"
   when: item.machine == inventory_hostname
 
 #

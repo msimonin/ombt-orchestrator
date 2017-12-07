@@ -4,7 +4,7 @@
     name: "{{ item.router_id }}"
     state: absent
     force_kill: yes
-  with_items: "{{ qdr_confs }}"
+  with_items: "{{ bus_conf }}"
   when: item.machine == inventory_hostname
 
 #
