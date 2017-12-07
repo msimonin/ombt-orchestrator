@@ -26,7 +26,7 @@
     # we workaround this issue :
     # https://github.com/ansible/ansible-modules-core/issues/265
     # by adding an empty space at the beginning of the json ...
-    body: " { \"name\": \"{{ item.name }}\", \"type\": \"influxdb\", \"url\": \"http://{{ item.host }}:{{ item.port }}\", \"access\": \"proxy\", \"isDefault\": true }"
+    body: " { \"name\": \"{{ item.name }}\", \"type\": \"influxdb\", \"url\": \"http://{{ item.host }}:{{ item.port }}\", \"access\": \"proxy\", \"database\": \"{{ item.database  }}\", \"isDefault\": true }"
     return_content: yes
     status_code: 200,409 # already added
   with_items:
