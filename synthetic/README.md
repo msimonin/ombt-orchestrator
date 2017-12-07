@@ -15,6 +15,23 @@ From a high level point of view the framework is able to deploy
 * a set of client/server that will communicate
 * start a benchmark while gathering metrics
 
+
+A typical test consists in the following components:
+
+```
+Client 1---------+      +----------------------+     +-----> Server 1
+                 |      |                      |     |
+                 +----> |  Communication       | ----+-----> Server 2
+Client 2--------------> |  Middleware          |     |
+                 +----> |  (e.g qdr, rabbitms) |     |
+...              |      |                      |     |
+                 |      +----------------------+     +------> Server n
+Client n---------+              |                             /
+  \                                                         /
+    \                           |                         / 
+      \  --  --  --  --  -- Monitoring --  --  --  --  --
+```
+
 ## Installation
 
 * Clone the repository: 
