@@ -24,6 +24,7 @@ TIMEOUT=60
 VERSION="beyondtheclouds/ombt:latest"
 VERBOSE=None
 BACKUP_DIR="backup"
+LENGTH="1024"
 
 
 tc = {
@@ -171,6 +172,7 @@ class OmbtController(OmbtAgent):
         self.call_type = kwargs["call_type"]
         self.nbr_calls = kwargs["nbr_calls"]
         self.pause = kwargs["pause"]
+        self.length = kwargs["length"]
         super(OmbtController, self).__init__(**kwargs)
         # that smells a bit
         self.detach = False
@@ -189,6 +191,7 @@ class OmbtController(OmbtAgent):
         command.append(self.call_type)
         command.append("--calls %s" % self.nbr_calls)
         command.append("--pause %s" % self.pause)
+        command.append("--length %s" % self.length)
         return " ".join(command)
 
 # The two following tasks are exclusive either you choose to go with g5k or
@@ -292,6 +295,7 @@ def test_case_1(
     version=VERSION,
     verbose=VERBOSE,
     backup_dir=BACKUP_DIR,
+    length=LENGTH,
     env=None, **kwargs):
 
     iteration_id = str("-".join([
@@ -342,7 +346,8 @@ def test_case_1(
             "nbr_calls": nbr_calls,
             "pause": pause,
             "timeout": timeout,
-            "verbose": verbose
+            "verbose": verbose,
+            "length": length
         }
     }]
     # Below we build the specific variables for each client/server

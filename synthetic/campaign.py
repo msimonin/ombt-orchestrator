@@ -7,17 +7,16 @@ import logging
 
 PARAMETERS = {
     # "nbr_servers": [1, 5, 10, 50, 100, 200, 300, 400, 500],
-    "nbr_servers": [1, 5, 10, 50, 100],
+    "nbr_servers": [1, 5, 10],
     # "nbr_clients": [1, 10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000],
-    "nbr_clients": [1, 10, 50, 100, 200, 300, 400, 500],
+    "nbr_clients": [1],
     "call_type": ["rpc-cast", "rpc-call"],
     "nbr_calls": [100],
     "pause": [0],
     "timeout": [8000],
-    "version": ["avankemp/ombt:TestResults_todict_fixed"]
+    "version": ["avankemp/ombt:TestResults_todict_fixed"],
+    "length": [6000000]
 }
-
-BROKER = "rabbitmq"
 
 BROKER = "rabbitmq"
 TEST_DIR = "tc1"
