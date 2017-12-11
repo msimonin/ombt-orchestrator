@@ -4,10 +4,11 @@ from execo_engine import sweep, ParamSweeper
 import tasks as t
 import os
 import logging
+import json
 
 PARAMETERS = {
     # "nbr_servers": [1, 5, 10, 50, 100, 200, 300, 400, 500],
-    "nbr_servers": [1, 5, 10],
+    "nbr_servers": [1],
     # "nbr_clients": [1, 10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000],
     "nbr_clients": [1],
     "call_type": ["rpc-cast", "rpc-call"],
@@ -15,7 +16,7 @@ PARAMETERS = {
     "pause": [0],
     "timeout": [8000],
     "version": ["avankemp/ombt:TestResults_todict_fixed"],
-    "length": [6000000]
+    "length": [1024]
 }
 
 BROKER = "rabbitmq"
@@ -90,3 +91,8 @@ if __name__ == "__main__":
         sweeper.done(params)
         params = sweeper.get_next(sort_params_by_nbr_clients)
         t.destroy()
+
+    # Save the whole campaign parameters
+    PARAMETERS.update({"broker": BROKER})
+    with open("%s/params.json" % TEST_DIR, 'w') as outfile:
+        json.dump(PARAMETERS, outfile)
