@@ -77,13 +77,14 @@ if __name__ == "__main__":
     # Get the next parameter in the set of all remaining params
     # This set is temporary viewed as sorted List with this filter function.
     params = sweeper.get_next(sort_params_by_nbr_clients)
+    t.vagrant(broker=BROKER, env=TEST_DIR)
+    t.inventory()
+    
     while params:
         params.pop("backup_dir", None)
         params.update({
             "backup_dir": generate_id(params)
         })
-        t.vagrant(broker=BROKER, env=TEST_DIR)
-        t.inventory()
         t.prepare(broker=BROKER)
         print(params)
         t.test_case_1(**params)
