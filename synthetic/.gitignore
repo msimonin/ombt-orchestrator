@@ -3,6 +3,10 @@
 /enos_*/
 /ansible/hosts
 /current
+# Don't trace any yaml/yml in the root dir 
+# default conf.yaml would need to be force added
+# or add an exception here
+/*.yaml
 
 # OS-specific
 .DS_Store
