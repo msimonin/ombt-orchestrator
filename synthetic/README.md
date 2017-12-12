@@ -2,7 +2,7 @@
 
 ## Context
 
-EnOSlib is a framework to benchmark the communication middleware supported by [oslo.messaging](https://docs.openstack.org/oslo.messaging/latest/). It's primary goal is to address the evaluation of https://docs.openstack.org/performance-docs/latest/test_plans/massively_distribute_rpc/plan.html.
+This is a framework to benchmark the communication middleware supported by [oslo.messaging](https://docs.openstack.org/oslo.messaging/latest/). It's primary goal is to address the evaluation of https://docs.openstack.org/performance-docs/latest/test_plans/massively_distribute_rpc/plan.html.
 
 It is build on top of: 
 
