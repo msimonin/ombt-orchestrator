@@ -194,28 +194,26 @@ class OmbtController(OmbtAgent):
         command.append("--length %s" % self.length)
         return " ".join(command)
 
+
 # The two following tasks are exclusive either you choose to go with g5k or
 # vagrant you can't mix the two of them in the future we might want to
 # factorize it and have a switch on the command line to choose.
 @enostask(new=True)
-def g5k(env=None, broker=BROKER, force=False, **kwargs):
-    with open("confs/g5k-%s.yaml" % broker) as f:
-        g5k_config = yaml.load(f)
-        provider = G5k(g5k_config)
-        roles, networks = provider.init(force_deploy=force)
-        env["roles"] = roles
-        env["networks"] = networks
+def g5k(env=None, broker=BROKER, force=False, config=None,  **kwargs):
+    provider = G5k(config["g5k"])
+    roles, networks = provider.init(force_deploy=force)
+    env["config"] = config
+    env["roles"] = roles
+    env["networks"] = networks
 
 
 @enostask(new=True)
-def vagrant(env=None, broker=BROKER, force=False, **kwargs):
-    with open("confs/vagrant-%s.yaml" % broker) as f:
-        vagrant_config = yaml.load(f)
-        provider = Enos_vagrant(vagrant_config)
-        roles, networks = provider.init(force_deploy=force)
-        # saving the roles
-        env["roles"] = roles
-        env["networks"] = networks
+def vagrant(env=None, broker=BROKER, force=False, config=None, **kwargs):
+    provider = Enos_vagrant(config["vagrant"])
+    roles, networks = provider.init(force_deploy=force)
+    env["config"] = config
+    env["roles"] = roles
+    env["networks"] = networks
 
 
 @enostask()

@@ -1,9 +1,20 @@
 #!/usr/bin/env python
 import click
+from execo_engine import sweep, ParamSweeper
 import logging
+import os
 import tasks as t
+import yaml
 
 logging.basicConfig(level=logging.DEBUG)
+
+DEFAULT_CONF = os.path.dirname(os.path.realpath(__file__))
+DEFAULT_CONF = os.path.join(DEFAULT_CONF, "conf.yaml")
+PROVIDERS = {
+    "g5k": t.g5k,
+    "vagrant": t.vagrant
+}
+
 
 ## cli part
 @click.group()
@@ -18,16 +29,18 @@ def cli():
     help="Deploy with the given provider")
 @click.option("--force",
     is_flag=True)
+@click.option("--conf",
+    default=DEFAULT_CONF,
+    help="Configuration file to use")
 @click.option("--env",
     help="Use this environment directory instead of the default one")
-def deploy(broker, provider, force, env):
-    providers = {
-        "g5k": t.g5k,
-        "vagrant": t.vagrant
-    }
-    p = providers[provider]
+def deploy(broker, provider, force, conf, env):
+    config = {}
+    with open(conf) as f:
+        config = yaml.load(f)
+    p = PROVIDERS[provider]
 
-    p(broker=broker, force=force, env=env)
+    p(broker=broker, force=force, config=config, env=env)
     t.inventory()
     t.prepare(broker=broker)
 
@@ -103,6 +116,90 @@ def destroy():
 @cli.command(help="Backup the environment")
 def backup():
     t.backup()
+
+@cli.command()
+@click.argument('broker')
+@click.option("--provider",
+    default="vagrant",
+    help="Deploy with the given provider")
+@click.option("--conf",
+    default=DEFAULT_CONF,
+    help="Configuration file to use")
+@click.option("--test",
+    default="test_case_1",
+    help="Launch a test campaign given a test")
+@click.option("--env",
+    help="Use this environment directory instead of the default one")
+def campaign(broker, provider, conf, test, env):
+
+    def generate_id(params):
+        def clean(s):
+            return str(s).replace("/", "_sl_") \
+                .replace(":", "_sc_")
+
+        return "-".join([
+            "%s__%s" % (clean(k), clean(v)) for k, v in sorted(params.items())
+        ])
+
+
+    def accept(params):
+        call_ratio_max = 3
+        cast_ratio_max = 3
+        call_type = params["call_type"]
+        if call_type == "rpc-call":
+            if not params["pause"]:
+                # maximum rate
+                return call_ratio_max * params["nbr_servers"] >= params["nbr_clients"]
+            else:
+                # we can afford more clients
+                # based on our estimation a client sends 200msgs at full rate
+                return call_ratio_max * params["nbr_servers"] >= params["nbr_clients"] * 200 * params["pause"]
+        else:
+            if not params["pause"]:
+                # maximum rate
+                return cast_ratio_max * params["nbr_servers"] >= params["nbr_clients"]
+            else:
+                # we can afford more clients
+                # based on our estimation a client sends 200msgs at full rate
+                return cast_ratio_max * params["nbr_servers"] >= params["nbr_clients"] * 1000 * params["pause"]
+
+
+    # Function to pass in parameter to ParamSweeper.get_next()
+    # Give the illusion that the Set of params is sorted by nbr_clients
+    def sort_params_by_nbr_clients(set):
+        return sorted((list(set)), key=lambda k: k['nbr_clients'])
+
+
+    # Loading the conf
+    config = {}
+    with open(conf) as f:
+        config = yaml.load(f)
+    parameters = config["campaign"][test]
+
+    sweeps = sweep(parameters)
+    filtered_sweeps = [param for param in sweeps if accept(param)]
+    sweeper = ParamSweeper(
+        # Maybe puts the sweeper under the experimentation directory
+        # This should be current/sweeps
+        persistence_dir=os.path.join("%s/sweeps" % test),
+        sweeps=filtered_sweeps,
+        save_sweeps=True,
+        name=test
+    )
+    params = sweeper.get_next(sort_params_by_nbr_clients)
+    PROVIDERS[provider](broker=broker, config=config, env=test)
+    t.inventory()
+
+    while params:
+        params.pop("backup_dir", None)
+        params.update({
+            "backup_dir": generate_id(params)
+        })
+        t.prepare(broker=broker)
+        t.test_case_1(**params)
+        sweeper.done(params)
+        params = sweeper.get_next(sort_params_by_nbr_clients)
+        t.destroy()
 
 
 if __name__ == "__main__":
