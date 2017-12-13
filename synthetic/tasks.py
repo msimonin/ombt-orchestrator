@@ -22,7 +22,6 @@ NBR_CALLS="100"
 PAUSE=0
 TIMEOUT=60
 VERSION="beyondtheclouds/ombt:latest"
-VERBOSE=None
 BACKUP_DIR="backup"
 LENGTH="1024"
 
@@ -104,7 +103,6 @@ class OmbtAgent(object):
         self.control_agents = kwargs["control_agents"]
         self.bus_agents = kwargs["bus_agents"]
         self.timeout = kwargs["timeout"]
-        self.verbose = kwargs["verbose"]
         # generated
         self.agent_type = self.get_type()
         # docker
@@ -149,8 +147,9 @@ class OmbtAgent(object):
         command.append("--timeout %s " % self.timeout)
         command.append(self.generate_connections())
         command.append(self.get_type())
-        if self.verbose:
-            command.append("--output %s " % self.docker_log)
+        # NOTE(msimonin): we don't use verbosity for client/server
+        # if self.verbose:
+        #    command.append("--output %s " % self.docker_log)
         return command
 
 
@@ -187,6 +186,7 @@ class OmbtController(OmbtAgent):
         command.append("--timeout %s" % self.timeout)
         command.append(self.generate_connections())
         command.append(self.get_type())
+        # We always dump stat per agents
         command.append("--output %s" % self.docker_log)
         command.append(self.call_type)
         command.append("--calls %s" % self.nbr_calls)
@@ -291,7 +291,6 @@ def test_case_1(
     pause=PAUSE,
     timeout=TIMEOUT,
     version=VERSION,
-    verbose=VERBOSE,
     backup_dir=BACKUP_DIR,
     length=LENGTH,
     env=None, **kwargs):
@@ -321,7 +320,6 @@ def test_case_1(
         "klass": OmbtClient,
         "kwargs": {
             "timeout": timeout,
-            "verbose": verbose
         }
     },
     {
@@ -331,7 +329,6 @@ def test_case_1(
         "klass": OmbtServer,
         "kwargs": {
             "timeout": timeout,
-            "verbose": verbose
         }
     },
     {
@@ -344,12 +341,16 @@ def test_case_1(
             "nbr_calls": nbr_calls,
             "pause": pause,
             "timeout": timeout,
-            "verbose": verbose,
             "length": length
         }
     }]
     # Below we build the specific variables for each client/server
-    ombt_confs= []
+    # ombt_conf = {
+    #   "controller": [confs for the controllers],
+    #   "rpc-server": [confs for the rpc-server],
+    #   "rpc-client": [confs for the rpc-client],
+    # }
+    ombt_confs= {}
     bus_conf = env["bus_conf"]
     control_bus_conf = env["control_bus_conf"]
     for agent_desc in descs:
@@ -368,9 +369,17 @@ def test_case_1(
                 "bus_agents": [bus_agent],
                 "control_agents": [control_agent]  # TODO
             })
-            ombt_confs.append(agent_desc["klass"](**kwargs))
+            ombt_confs.setdefault(agent_desc["agent_type"], [])
+            ombt_confs[agent_desc["agent_type"]].append(agent_desc["klass"](**kwargs))
 
-    extra_vars.update({"ombt_confs": [o.to_dict() for o in ombt_confs]})
+    ansible_ombt_confs = {
+        "controller": [o.to_dict() for o in ombt_confs["controller"]],
+        "rpc-server": [o.to_dict() for o in ombt_confs["rpc-server"]],
+        "rpc-client": [o.to_dict() for o in ombt_confs["rpc-client"]]
+
+    }
+    print(ansible_ombt_confs)
+    extra_vars.update({"ombt_confs": ansible_ombt_confs})
     run_ansible(["ansible/test_case_1.yml"], env["inventory"], extra_vars=extra_vars)
     # saving the conf
     env["ombt_confs"] = ombt_confs

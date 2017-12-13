@@ -1,0 +1,24 @@
+---
+- name: Get docker logs from the controller
+  shell: "docker logs {{ item.name  }} > {{ item.log | dirname }}/{{ item.name }}_docker.log"
+  with_items: "{{ ombt_confs['controller'] }}"
+  when: 
+    - inventory_hostname == item.machine
+
+- name: Fetching docker logs from the ombt controller
+  fetch:
+    src: "{{ item.log | dirname }}/{{ item.name }}_docker.log"
+    dest: "{{ backup_dir }}/{{ inventory_hostname }}_{{item.name}}_docker.log"
+    flat: yes
+  with_items: "{{ ombt_confs['controller'] }}"
+  when: 
+    - inventory_hostname == item.machine
+
+- name: Fetching omt agent output log
+  fetch:
+    src: "{{ item.log }}"
+    dest: "{{ backup_dir }}/{{ inventory_hostname }}_{{ item.name }}.log"
+    flat: yes
+  with_items: "{{ ombt_confs['controller'] }}"
+  when: 
+    - inventory_hostname == item.machine

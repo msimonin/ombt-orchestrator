@@ -1,21 +1,9 @@
 ---
-- name: Get docker logs from the ombt agent
-  shell: "docker logs {{ item.name  }} > {{ item.log | dirname }}/{{ item.name }}_docker.log"
-  with_items: "{{ ombt_confs }}"
-  when: inventory_hostname == item.machine
+- include: backup/controller.yml
+  when: inventory_hostname in groups["ombt-control"]
 
-- name: Fetching docker logs from the ombt agent
-  fetch:
-    src: "{{ item.log | dirname }}/{{ item.name }}_docker.log"
-    dest: "{{ backup_dir }}/{{ inventory_hostname }}_{{item.name}}_docker.log"
-    flat: yes
-  with_items: "{{ ombt_confs }}"
-  when: inventory_hostname == item.machine
+- include: backup/rpc-server.yml
+  when: inventory_hostname in groups["ombt-server"]
 
-- name: Fetching omt agent output log
-  fetch:
-    src: "{{ item.log }}"
-    dest: "{{ backup_dir }}/{{ inventory_hostname }}_{{ item.name }}.log"
-    flat: yes
-  with_items: "{{ ombt_confs }}"
-  when: inventory_hostname == item.machine
+- include: backup/rpc-client.yml
+  when: inventory_hostname in groups["ombt-client"]

@@ -1,0 +1,30 @@
+---
+- name: Create ombt-data directory for the controller
+  file:
+    path: "{{ item.log | dirname }}"
+    mode: 0777
+    state: directory
+  with_items: "{{ ombt_confs.controller }}"
+  when: inventory_hostname in groups["ombt-control"]
+
+- name: Create the controller output log file
+  file:
+    path: "{{ item.log }}"
+    mode: 0777
+    state: touch
+  with_items: "{{ ombt_confs.controller }}"
+  when:
+    - inventory_hostname == item.machine
+
+- name: Start ombt controller
+  docker_container:
+    image: "{{ ombt_version }}"
+    command: "{{ item.command }}"
+    name: "{{ item.name }}"
+    detach: "{{ item.detach }}"
+    network_mode: host
+    state: started
+    volumes:
+      - "{{ item.log }}:{{item.docker_log}}"
+  when: inventory_hostname == item.machine
+  with_items: "{{ ombt_confs['controller'] }}"
