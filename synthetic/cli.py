@@ -5,6 +5,7 @@ import logging
 import os
 import tasks as t
 import yaml
+import json
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -169,6 +170,18 @@ def campaign(broker, provider, conf, test, env):
     def sort_params_by_nbr_clients(set):
         return sorted((list(set)), key=lambda k: k['nbr_clients'])
 
+    # Dump each params in the backup dir
+    def dump_param(params):
+        if not os.path.exists("%s/params.json" % test):
+            with open("%s/params.json" % test, 'w') as outfile:
+                json.dump([], outfile)
+        #Add the current params to the json
+        with open("%s/params.json" % test, 'r') as outfile:
+            all_params = json.load(outfile)
+        all_params.append(params)
+        with open("%s/params.json" % test, 'w') as outfile:
+            json.dump(all_params, outfile)
+
 
     # Loading the conf
     config = {}
@@ -198,6 +211,7 @@ def campaign(broker, provider, conf, test, env):
         t.prepare(broker=broker)
         t.test_case_1(**params)
         sweeper.done(params)
+        dump_param(params)
         params = sweeper.get_next(sort_params_by_nbr_clients)
         t.destroy()
 
