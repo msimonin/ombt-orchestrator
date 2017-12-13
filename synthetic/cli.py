@@ -142,6 +142,8 @@ def campaign(broker, provider, conf, test, env):
         call_ratio_max = 3
         cast_ratio_max = 3
         call_type = params["call_type"]
+        if params["nbr_servers"] > params["nbr_clients"]:
+            return False
         if call_type == "rpc-call":
             if not params["pause"]:
                 # maximum rate
