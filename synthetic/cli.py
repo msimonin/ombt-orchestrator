@@ -95,10 +95,7 @@ def prepare():
 @click.option("--version",
     default=t.VERSION,
     help="Version of ombt to use as a docker tag (will use beyondtheclouds:'vesion')")
-@click.option("--verbose",
-    is_flag=True,
-    help="Verbose mode will log every single message stat [client|server]")
-def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, version, verbose, length):
+def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, version, length):
     t.test_case_1(nbr_clients=nbr_clients,
                   nbr_servers=nbr_servers,
                   call_type=call_type,
@@ -106,7 +103,6 @@ def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, 
                   pause=pause,
                   timeout=timeout,
                   version=version,
-                  verbose=verbose,
                   length=length)
 
 @cli.command(help="Destroy all the running dockers (not destroying the resources)")
