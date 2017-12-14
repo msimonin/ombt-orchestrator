@@ -1,9 +1,26 @@
 ---
-- include: deploy/controller.yml
-  when: inventory_hostname in groups["ombt-control"]
+- name: Create ombt-data directory for the agent
+  file:
+    path: "{{ item.log | dirname }}"
+    mode: 0777
+    state: directory
+  with_items: "{{ ombt_confs[inventory_hostname] }}"
 
-- include: deploy/rpc-server.yml
-  when: inventory_hostname in groups["ombt-server"]
+- name: Create the agent output log file
+  file:
+    path: "{{ item.log }}"
+    mode: 0777
+    state: touch
+  with_items: "{{ ombt_confs[inventory_hostname] }}"
 
-- include: deploy/rpc-client.yml
-  when: inventory_hostname in groups["ombt-client"]
+- name: Start ombt agent
+  docker_container:
+    image: "{{ ombt_version }}"
+    command: "{{ item.command }}"
+    name: "{{ item.name }}"
+    detach: "{{ item.detach }}"
+    network_mode: host
+    state: started
+    volumes:
+      - "{{ item.log }}:{{item.docker_log}}"
+  with_items: "{{ ombt_confs[inventory_hostname] }}"
