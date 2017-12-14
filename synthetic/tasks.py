@@ -346,15 +346,18 @@ def test_case_1(
     }]
     # Below we build the specific variables for each client/server
     # ombt_conf = {
-    #   "controller": [confs for the controllers],
-    #   "rpc-server": [confs for the rpc-server],
-    #   "rpc-client": [confs for the rpc-client],
+    #   "machine01": [confs],
+    # ...
+    #
     # }
     ombt_confs= {}
     bus_conf = env["bus_conf"]
     control_bus_conf = env["control_bus_conf"]
     for agent_desc in descs:
         machines = agent_desc["machines"]
+        # make sure all the machines appears in the ombt_confs
+        for machine in machines:
+            ombt_confs.setdefault(machine.alias, [])
         for agent_index in range(agent_desc["number"]):
             agent_id = "%s-%s-%s" % (agent_desc["agent_type"], agent_index, iteration_id)
             # choose a machine
@@ -369,16 +372,12 @@ def test_case_1(
                 "bus_agents": [bus_agent],
                 "control_agents": [control_agent]  # TODO
             })
-            ombt_confs.setdefault(agent_desc["agent_type"], [])
-            ombt_confs[agent_desc["agent_type"]].append(agent_desc["klass"](**kwargs))
+            ombt_confs[machine].append(agent_desc["klass"](**kwargs))
 
-    ansible_ombt_confs = {
-        "controller": [o.to_dict() for o in ombt_confs["controller"]],
-        "rpc-server": [o.to_dict() for o in ombt_confs["rpc-server"]],
-        "rpc-client": [o.to_dict() for o in ombt_confs["rpc-client"]]
+    ansible_ombt_confs = {}
+    for m, confs in ombt_confs.items():
+        ansible_ombt_confs[m] = [o.to_dict() for o in confs]
 
-    }
-    print(ansible_ombt_confs)
     extra_vars.update({"ombt_confs": ansible_ombt_confs})
     run_ansible(["ansible/test_case_1.yml"], env["inventory"], extra_vars=extra_vars)
     # saving the conf
