@@ -93,10 +93,13 @@ def prepare():
 @click.option("--length",
     default=t.LENGTH,
     help="The size of the payload in bytes")
+@click.option("--executor",
+    default=t.EXECUTOR,
+    help="type of executor the server will use")
 @click.option("--version",
     default=t.VERSION,
     help="Version of ombt to use as a docker tag (will use beyondtheclouds:'vesion')")
-def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, version, length):
+def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, version, length, executor):
     t.test_case_1(nbr_clients=nbr_clients,
                   nbr_servers=nbr_servers,
                   call_type=call_type,
@@ -104,7 +107,8 @@ def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, 
                   pause=pause,
                   timeout=timeout,
                   version=version,
-                  length=length)
+                  length=length,
+                  executor=executor)
 
 @cli.command(help="Destroy all the running dockers (not destroying the resources)")
 def destroy():

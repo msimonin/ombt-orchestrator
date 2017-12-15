@@ -24,6 +24,7 @@ TIMEOUT=60
 VERSION="beyondtheclouds/ombt:latest"
 BACKUP_DIR="backup"
 LENGTH="1024"
+EXECUTOR="threading"
 
 
 tc = {
@@ -161,6 +162,15 @@ class OmbtClient(OmbtAgent):
 
 class OmbtServer(OmbtAgent):
 
+    def __init__(self, **kwargs):
+        self.executor = kwargs["executor"]
+        super(OmbtServer, self).__init__(**kwargs)
+
+    def get_command(self):
+        server_command = super(OmbtServer, self).get_command()
+        server_command.append("--executor %s" % self.executor)
+        return server_command
+
     def get_type(self):
         return "rpc-server"
 
@@ -293,6 +303,7 @@ def test_case_1(
     version=VERSION,
     backup_dir=BACKUP_DIR,
     length=LENGTH,
+    executor=EXECUTOR,
     env=None, **kwargs):
 
     iteration_id = str("-".join([
@@ -329,6 +340,7 @@ def test_case_1(
         "klass": OmbtServer,
         "kwargs": {
             "timeout": timeout,
+            "executor": executor
         }
     },
     {

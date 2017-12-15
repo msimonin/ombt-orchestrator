@@ -7,6 +7,8 @@ campaign:
         pause: [0]
         timeout: [8000]
         version: ["beyondtheclouds/ombt:latest"]
+        length: [1024]
+        executor: ["eventlet"]
 g5k:
     reservation: "2017-12-06 14:40:00"
     walltime: "2:00:00"
@@ -79,7 +81,7 @@ vagrant:
             - telegraf
             - chrony
           flavor: tiny
-          number: 2
+          number: 1
           networks:
             - control_network
             - internal_network
