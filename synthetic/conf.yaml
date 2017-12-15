@@ -8,6 +8,7 @@ campaign:
         timeout: [8000]
         version: ["beyondtheclouds/ombt:latest"]
         length: [1024]
+        executor: ["eventlet"]
 g5k:
     reservation: "2017-12-06 14:40:00"
     walltime: "2:00:00"
