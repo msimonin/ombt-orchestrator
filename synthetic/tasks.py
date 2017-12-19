@@ -10,8 +10,6 @@ from qpid_generator.configurations import get_conf
 import os
 import yaml
 
-GRAPH_TYPE="complete_graph"
-GRAPH_ARGS=[4]
 BROKER="qdr"
 
 # DEFAULT PARAMETERS
@@ -251,6 +249,8 @@ def prepare(env=None, broker=BROKER, **kwargs):
     # ombt agents.
     roles = env["roles"]
     machines = [desc.alias for desc in roles["bus"]]
+    # Get the specific configuration from the file
+    config = env["config"][broker]
 
     if broker == "rabbitmq":
         # NOTE(msimonin): generate the configuration for rabbitmq
@@ -266,7 +266,7 @@ def prepare(env=None, broker=BROKER, **kwargs):
         ansible_bus_conf = {"bus_conf": bus_conf}
     elif broker == "qdr":
         # Building the graph of routers
-        graph = generate(GRAPH_TYPE, *GRAPH_ARGS)
+        graph = generate(config["type"], *config["args"])
         bus_conf = get_conf(graph, machines, round_robin)
         env.update({"bus_conf": [QdrConf(c) for c in bus_conf.values()]})
         ansible_bus_conf = {"bus_conf": bus_conf.values()}
