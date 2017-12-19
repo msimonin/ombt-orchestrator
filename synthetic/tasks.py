@@ -236,9 +236,7 @@ def inventory(env=None, **kwargs):
 def prepare(env=None, broker=BROKER, **kwargs):
     # Generate inventory
     extra_vars = {
-        "registry": {
-            "type": "internal"
-        },
+        "registry": env["config"]["registry"],
         "broker": broker
     }
     # Preparing the installation of the bus under evaluation

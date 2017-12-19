@@ -13,6 +13,8 @@ rabbitmq:
 qdr:
   type: complete_graph
   args: [4]
+registry:
+  type: internal
 g5k:
   reservation: "2017-12-06 14:40:00"
   walltime: "2:00:00"
