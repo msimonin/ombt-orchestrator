@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from enoslib.api import run_ansible, generate_inventory, emulate_network, validate_network
 from enoslib.task import enostask
+from enoslib.infra.enos_chameleonkvm.provider import Chameleonkvm
 from enoslib.infra.enos_g5k.provider import G5k
 from enoslib.infra.enos_vagrant.provider import Enos_vagrant
 from qpid_generator.graph import generate
@@ -218,6 +219,15 @@ def g5k(env=None, broker=BROKER, force=False, config=None,  **kwargs):
 @enostask(new=True)
 def vagrant(env=None, broker=BROKER, force=False, config=None, **kwargs):
     provider = Enos_vagrant(config["vagrant"])
+    roles, networks = provider.init(force_deploy=force)
+    env["config"] = config
+    env["roles"] = roles
+    env["networks"] = networks
+
+
+@enostask(new=True)
+def chameleon(env=None, broker=BROKER, force=False, config=None, **kwargs):
+    provider =Chameleonkvm(config["chameleon"])
     roles, networks = provider.init(force_deploy=force)
     env["config"] = config
     env["roles"] = roles

@@ -13,7 +13,8 @@ DEFAULT_CONF = os.path.dirname(os.path.realpath(__file__))
 DEFAULT_CONF = os.path.join(DEFAULT_CONF, "conf.yaml")
 PROVIDERS = {
     "g5k": t.g5k,
-    "vagrant": t.vagrant
+    "vagrant": t.vagrant,
+    "chameleon": t.chameleon
 }
 
 

@@ -1,0 +1,152 @@
+campaign:
+  test_case_1:
+    nbr_servers: [1]
+    nbr_clients: [1, 2, 4]
+    call_type: ["rpc-cast", "rpc-call"]
+    nbr_calls: [10000]
+    pause: [0]
+    timeout: [8000]
+    version: ["beyondtheclouds/ombt:latest"]
+    length: [1024]
+    executor: ["eventlet", "threading"]
+rabbitmq:
+qdr:
+  type: complete_graph
+  args: [4]
+registry:
+  type: internal
+g5k:
+  reservation: "2017-12-06 14:40:00"
+  walltime: "2:00:00"
+  dhcp: true
+  job_name: rabbitmq-xp-daytest
+  env_name: debian9-x64-nfs
+  resources:
+    machines:
+      - roles:
+        - control-bus
+        - ombt-control
+        - control
+        - registry
+        - telegraf
+        - influxdb
+        - grafana
+        - chrony-server
+        cluster: parasilo
+        nodes: 1
+        primary_network: n1
+        secondary_networks: []
+      - roles:
+        - bus
+        - telegraf
+        - chrony
+        cluster: parasilo
+        nodes: 1
+        primary_network: n1
+        secondary_networks: []
+      - roles:
+        - ombt-server
+        - telegraf
+        - chrony
+        cluster: parasilo
+        nodes: 1 
+        primary_network: n1
+        secondary_networks: []
+      - roles:
+        - ombt-client
+        - telegraf
+        - chrony
+        cluster: parasilo
+        nodes: 1
+        primary_network: n1
+        secondary_networks: []
+        networks:
+          - id: n1
+            roles:
+              - control_network
+          - internal_network
+        type: prod
+        site: rennes
+vagrant:
+  backend: virtualbox
+  user: root
+  box: bento/debian-9.1
+  resources:
+    machines:
+      - roles:
+        - bus
+        - telegraf
+        - chrony
+        flavor: tiny
+        number: 1
+        networks:
+          - control_network
+          - internal_network
+      - roles:
+        - ombt-client
+        - telegraf
+        - chrony
+        flavor: tiny
+        number: 1
+        networks:
+          - control_network
+          - internal_network
+      - roles:
+        - ombt-server
+        - telegraf
+        - chrony
+        flavor: tiny
+        number: 1
+        networks:
+          - control_network
+          - internal_network
+      - roles:
+        - control-bus
+        - ombt-control
+        - control
+        - registry
+        - telegraf
+        - influxdb
+        - grafana
+        - chrony-server
+        flavor: medium
+        number: 1
+        networks:
+          - control_network
+          - internal_network
+chameleon:
+    key_name: enos-matt
+    resources:
+        machines:
+          - roles:
+            - bus
+            - telegraf
+            - chrony
+            flavor: m1.medium
+            number: 1
+          - roles:
+            - ombt-client
+            - telegraf
+            - chrony
+            flavor: m1.medium
+            number: 1
+          - roles:
+            - ombt-server
+            - telegraf
+            - chrony
+            flavor: m1.medium
+            number: 1
+          - roles:
+            - control-bus
+            - ombt-control
+            - control
+            - registry
+            - telegraf
+            - influxdb
+            - grafana
+            - chrony-server
+            flavor: m1.medium
+            number: 1
+        networks:
+          - control_network
+          - internal_network
