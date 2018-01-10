@@ -11,14 +11,47 @@
   with_items: "{{ bus_conf }}"
   when: item.machine == inventory_hostname
 
+# collectd configuration
+- name: Generate collectd specific configuration
+  template:
+    src: collectd-qdrouterd.conf.jinja2
+    dest: "/etc/qpid-generator/collectd-qdrouterd-{{ item.router_id }}.conf"
+  with_items: "{{ bus_conf }}"
+  when: item.machine == inventory_hostname
+
+- name: Generate collectd specific configuration
+  template:
+    src: collectd-influxdb.conf.jinja2
+    dest: "/etc/qpid-generator/collectd-influxdb.conf"
+
+- name: Generate collectd general configuration
+  template:
+    src: collectd.conf.jinja2
+    dest: "/etc/qpid-generator/collectd-{{ item.router_id }}.conf"
+  with_items: "{{ bus_conf }}"
+  when: item.machine == inventory_hostname
+
+#
+# Start all qdrouterds
+#
 - name: Start qdrouterd(s)
   docker_container:
-    image: msimonin/qdrouterd
+    image: "{{ qdr_version }}"
     name: "{{ item.router_id }}"
     volumes:
       - "/etc/qpid-generator/{{ item.router_id }}.conf:/etc/qpid-dispatch/qdrouterd.conf"
+      - "/etc/qpid-generator/collectd-qdrouterd-{{ item.router_id }}.conf:/etc/collectd/collectd.conf.d/collectd-qdrouterd.conf"
+      - "/etc/qpid-generator/collectd-{{ item.router_id }}.conf:/etc/collectd/collectd.conf"
+      - "/etc/qpid-generator/collectd-influxdb.conf:/etc/collectd/collectd.conf.d/collectd-influxdb.conf"
     network_mode: host
+    hostname: "{{ item.router_id }}"
     state: started
+  with_items: "{{ bus_conf }}"
+  when: item.machine == inventory_hostname
+
+- name: Modify etc/hosts in container
+  shell:
+    cmd: "docker exec {{ item.router_id  }} bash -c 'echo {{ hostvars[item.machine]['ansible_' + control_network]['ipv4']['address'] }} {{ item.router_id }} >> /etc/hosts'"
   with_items: "{{ bus_conf }}"
   when: item.machine == inventory_hostname
 

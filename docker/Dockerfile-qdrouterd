@@ -1,0 +1,14 @@
+FROM phusion/baseimage:0.9.22
+
+MAINTAINER "matthieu.simonin@inria.fr"
+
+RUN apt update && apt install -y software-properties-common
+RUN add-apt-repository -y ppa:qpid/released
+RUN apt update && apt install -y qdrouterd=0.8.0-1qpid+xenial1\
+  libqpid-proton2-dev\
+  python-qpid-proton\
+  python-pip
+
+RUN pip install pyngus
+
+CMD ["qdrouterd"]

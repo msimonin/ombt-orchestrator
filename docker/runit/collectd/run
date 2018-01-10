@@ -1,0 +1,4 @@
+#!/bin/bash
+
+sleep 20
+exec /sbin/setuser root collectd -f >> /var/log/collectd.log 2>&1

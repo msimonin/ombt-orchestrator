@@ -1,0 +1,7 @@
+FROM ubuntu:xenial
+
+MAINTAINER "matthieu.simonin@inria.fr"
+
+RUN apt update && apt install -y python-pip
+RUN pip install -U websockify
+ENTRYPOINT ["websockify"]
