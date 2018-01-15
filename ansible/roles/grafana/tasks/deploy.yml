@@ -30,4 +30,4 @@
     return_content: yes
     status_code: 200,409 # already added
   with_items:
-    - { name: influxdb, database: telegraf, port: 8086, host: "{{ influxdb_host }}" }
+    - { name: influxdb, database: ombt-orchestrator, port: 8086, host: "{{ influxdb_host }}" }

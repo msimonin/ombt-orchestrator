@@ -1,0 +1,3 @@
+#!/bin/bash
+
+exec /sbin/setuser root qdrouterd >> /var/log/qdrouterd.log 2>&1

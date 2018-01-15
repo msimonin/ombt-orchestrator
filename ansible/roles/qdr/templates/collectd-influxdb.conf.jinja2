@@ -1,0 +1,6 @@
+# file generated using ansible
+LoadPlugin network
+<Plugin network>
+  Server "{{  hostvars[groups['influxdb'][0]]['ansible_' + control_network].ipv4.address }}" "25826"
+</Plugin>
+

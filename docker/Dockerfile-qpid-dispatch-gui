@@ -1,0 +1,10 @@
+FROM ubuntu:xenial
+
+MAINTAINER "matthieu.simonin@inria.fr"
+
+RUN apt update && apt install -y git python
+RUN git clone git://git.apache.org/qpid-dispatch.git -b 0.8.x /qpid-dispatch
+WORKDIR /qpid-dispatch/console/stand-alone
+EXPOSE 8000
+CMD ["python","-m", "SimpleHTTPServer"]
+

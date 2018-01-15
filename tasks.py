@@ -277,7 +277,7 @@ def prepare(env=None, broker=BROKER, **kwargs):
         graph = generate(config["type"], *config["args"])
         bus_conf = get_conf(graph, machines, round_robin)
         env.update({"bus_conf": [QdrConf(c) for c in bus_conf.values()]})
-        ansible_bus_conf = {"bus_conf": bus_conf.values()}
+        ansible_bus_conf = {"bus_conf": list(bus_conf.values())}
     else:
         raise Exception("Unknown broker chosen")
 
@@ -295,6 +295,9 @@ def prepare(env=None, broker=BROKER, **kwargs):
     extra_vars.update({"enos_action": "deploy"})
     extra_vars.update(ansible_bus_conf)
     extra_vars.update(ansible_control_bus_conf)
+
+    # Finally let's give ansible the bus_conf
+    extra_vars.update(config)
 
     run_ansible(["ansible/site.yml"], env["inventory"], extra_vars=extra_vars)
     env["broker"] = broker
