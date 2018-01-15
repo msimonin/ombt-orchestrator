@@ -297,7 +297,8 @@ def prepare(env=None, broker=BROKER, **kwargs):
     extra_vars.update(ansible_control_bus_conf)
 
     # Finally let's give ansible the bus_conf
-    extra_vars.update(config)
+    if config:
+        extra_vars.update(config)
 
     run_ansible(["ansible/site.yml"], env["inventory"], extra_vars=extra_vars)
     env["broker"] = broker
