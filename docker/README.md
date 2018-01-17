@@ -8,3 +8,9 @@ $) docker build -t msimonin/qdrouterd:0.8.0 -f Dockerfile-qdrouterd .
 ```
 $) docker build -t msimonin/qdrouterd-collectd:0.8.0 -f Dockerfile-qdrouterd-collectd .
 ```
+
+
+## Local tests
+
+* Enable log to stdout in collectd conf (plugin logfile)
+* Create the plugin file under /etc/collectd/collectd.conf.d/qdrouterd.conf
