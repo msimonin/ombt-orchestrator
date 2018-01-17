@@ -1,12 +1,12 @@
 * Build the qdrouterd image:
 
 ```
-$) docker build -t msimonin/qdrouterd:0.8.0 -f Dockerfile-qdrouterd .
+$) docker build -t msimonin/qdrouterd:0.8.0 -f Dockerfile-qdrouterd-0.8.0 .
 ```
 
 * Build the qdrouterd with collectd:
 ```
-$) docker build -t msimonin/qdrouterd-collectd:0.8.0 -f Dockerfile-qdrouterd-collectd .
+$) docker build -t msimonin/qdrouterd-collectd:0.8.0 -f Dockerfile-qdrouterd-collectd-0.8.0 .
 ```
 
 
