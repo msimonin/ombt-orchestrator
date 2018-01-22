@@ -5,6 +5,8 @@
   role = "ombt-client"
 {% elif inventory_hostname in groups["bus"] %}
   role = "bus"
+{% elif inventory_hostname in groups["control-bus"] %}
+  role = "control-bus"
 {% else %}
   role = "default"
 {% endif %}
@@ -37,8 +39,9 @@
   interfaces = []
 [[inputs.docker]]
   endpoint = "unix:///var/run/docker.sock"
-{% if broker is defined and broker=="rabbitmq" and inventory_hostname in groups['bus'] %}
+{% if (broker is defined and broker=="rabbitmq" and inventory_hostname in groups['bus']) or inventory_hostname in groups['control-bus'] %}
 [[inputs.rabbitmq]]
+    interval = "30s"
 {% endif %}
 [[outputs.influxdb]]
   urls = ["http://{{ hostvars[groups['influxdb'][0]]['ansible_' + control_network].ipv4.address }}:8086"]
