@@ -1,14 +1,14 @@
 campaign:
   test_case_1:
     nbr_servers: [1]
-    nbr_clients: [1, 2, 4]
-    call_type: ["rpc-cast", "rpc-call"]
-    nbr_calls: [10000]
-    pause: [0]
+    nbr_clients: [1]
+    call_type: ["rpc-call"]
+    nbr_calls: [100000]
+    pause: [0.1]
     timeout: [8000]
     version: ["beyondtheclouds/ombt:latest"]
     length: [1024]
-    executor: ["eventlet", "threading"]
+    executor: ["eventlet"]
 rabbitmq:
 qdr:
   type: complete_graph
@@ -17,7 +17,7 @@ qdr:
 registry:
   type: internal
 g5k:
-  reservation: "2017-12-06 14:40:00"
+  #reservation: "2017-12-06 14:40:00"
   walltime: "2:00:00"
   dhcp: true
   job_name: rabbitmq-xp-daytest
@@ -25,46 +25,46 @@ g5k:
   resources:
     machines:
       - roles:
-        - control-bus
-        - ombt-control
-        - control
-        - registry
-        - telegraf
-        - influxdb
-        - grafana
-        - chrony-server
+          - control-bus
+          - ombt-control
+          - control
+          - registry
+          - telegraf
+          - influxdb
+          - grafana
+          - chrony-server
         cluster: parasilo
         nodes: 1
         primary_network: n1
         secondary_networks: []
       - roles:
-        - bus
-        - telegraf
-        - chrony
+          - bus
+          - telegraf
+          - chrony
         cluster: parasilo
         nodes: 1
         primary_network: n1
         secondary_networks: []
       - roles:
-        - ombt-server
-        - telegraf
-        - chrony
+          - ombt-server
+          - telegraf
+          - chrony
         cluster: parasilo
         nodes: 1 
         primary_network: n1
         secondary_networks: []
       - roles:
-        - ombt-client
-        - telegraf
-        - chrony
+          - ombt-client
+          - telegraf
+          - chrony
         cluster: parasilo
         nodes: 1
         primary_network: n1
         secondary_networks: []
-        networks:
-          - id: n1
-            roles:
-              - control_network
+    networks:
+      - id: n1
+        roles:
+          - control_network
           - internal_network
         type: prod
         site: rennes
