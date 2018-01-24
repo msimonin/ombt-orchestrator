@@ -1,3 +1,5 @@
 #!/bin/bash
 
-exec /sbin/setuser root qdrouterd >> /var/log/qdrouterd.log 2>&1
+# force the configuration file because it seems that
+# the default changed between 0.8.0 and 1.0.0
+exec /sbin/setuser root qdrouterd -c /etc/qpid-dispatch/qdrouterd.conf >> /var/log/qdrouterd.log 2>&1

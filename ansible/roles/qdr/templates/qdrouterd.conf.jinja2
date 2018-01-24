@@ -5,7 +5,7 @@ router {
 
 {% for listener in item.listeners %}
 listener {
-    {% if listener.role == "inter-router" %}
+    {% if listener.role == "inter-router"%}
     host: {{ hostvars[listener.host]['ansible_' + internal_network]['ipv4']['address'] }}
     {% else %}
     host: {{ hostvars[listener.host]['ansible_' + control_network]['ipv4']['address'] }}

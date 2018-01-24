@@ -1,2 +1,3 @@
 ---
-qdr_version: msimonin/qdrouterd:0.8.0
+qdr_image: msimonin/qdrouterd
+qdr_version: 0.8.0

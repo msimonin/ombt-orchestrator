@@ -36,7 +36,7 @@
 #
 - name: Start qdrouterd(s)
   docker_container:
-    image: "{{ qdr_version }}"
+    image: "{{ qdr_image }}:{{ qdr_version }}"
     name: "{{ item.router_id }}"
     volumes:
       - "/etc/qpid-generator/{{ item.router_id }}.conf:/etc/qpid-dispatch/qdrouterd.conf"
@@ -60,7 +60,7 @@
 #
 - name: Start the web gui
   docker_container:
-    image: msimonin/qpid-dispatch-gui
+    image: "msimonin/qdrouterd-gui:{{ qdr_version }}"
     name: qpid-dispatch-gui
     network_mode: host
     state: started
