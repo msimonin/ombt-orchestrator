@@ -12,8 +12,9 @@ campaign:
 rabbitmq:
 qdr:
   type: complete_graph
-  args: [4]
-  qdr_version: msimonin/qdrouterd-collectd:0.8.0
+  args: [1]
+  qdr_image: msimonin/qdrouterd-collectd
+  qdr_version: 1.0.0
 registry:
   type: internal
 g5k:
