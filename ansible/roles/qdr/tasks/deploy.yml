@@ -51,7 +51,7 @@
 
 - name: Modify etc/hosts in container
   shell:
-    cmd: "docker exec {{ item.router_id  }} bash -c 'echo {{ hostvars[item.machine]['ansible_' + control_network]['ipv4']['address'] }} {{ item.router_id }} >> /etc/hosts'"
+    cmd: "docker exec {{ item.router_id  }} bash -c 'echo \"\n {{ hostvars[item.machine]['ansible_' + control_network]['ipv4']['address'] }} {{ item.router_id }}\" >> /etc/hosts'"
   with_items: "{{ bus_conf }}"
   when: item.machine == inventory_hostname
 
@@ -61,7 +61,7 @@
 - name: Start the web gui
   docker_container:
     image: "msimonin/qdrouterd-gui:{{ qdr_version }}"
-    name: qpid-dispatch-gui
+    name: qdrouterd-gui
     network_mode: host
     state: started
   when: inventory_hostname == groups['bus'][0]

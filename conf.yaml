@@ -12,7 +12,7 @@ campaign:
 rabbitmq:
 qdr:
   type: complete_graph
-  args: [1]
+  args: [4]
   qdr_image: msimonin/qdrouterd-collectd
   qdr_version: 1.0.0
 registry:
