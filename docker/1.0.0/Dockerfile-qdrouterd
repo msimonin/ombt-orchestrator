@@ -18,9 +18,8 @@ RUN apt update && apt install -y\
   libssl-dev
 
 
-RUN git clone https://github.com/apache/qpid-proton /opt/qpid-proton
+RUN git clone --depth 1 --branch 0.18.0 https://github.com/apache/qpid-proton /opt/qpid-proton
 WORKDIR /opt/qpid-proton
-RUN git checkout 0.18.0
 
 RUN mkdir build
 WORKDIR build
@@ -29,9 +28,8 @@ RUN make
 RUN make install
 
 
-RUN git clone https://github.com/apache/qpid-dispatch /opt/qpid-dispatch
+RUN git clone --depth 1 --branch 1.0.0 https://github.com/apache/qpid-dispatch /opt/qpid-dispatch
 WORKDIR /opt/qpid-dispatch
-RUN git checkout 1.0.0
 
 RUN mkdir build
 WORKDIR /opt/qpid-dispatch/build

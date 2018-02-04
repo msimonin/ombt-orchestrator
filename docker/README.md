@@ -1,16 +1,6 @@
-* Build the qdrouterd image:
+Build the image : use `make`
 
-```
-$) docker build -t msimonin/qdrouterd:0.8.0 -f Dockerfile-qdrouterd-0.8.0 .
-```
-
-* Build the qdrouterd with collectd:
-```
-$) docker build -t msimonin/qdrouterd-collectd:0.8.0 -f Dockerfile-qdrouterd-collectd-0.8.0 .
-```
-
-
-## Local tests
+To test qdrouterd-collectd locally:
 
 * Enable log to stdout in collectd conf (plugin logfile)
 * Create the plugin file under /etc/collectd/collectd.conf.d/qdrouterd.conf
