@@ -37,8 +37,8 @@ Client n---------+              |                             /
 * Clone the repository: 
 
 ```
-git clone https://github.com/msimonin/qpid-dispatch-xp
-cd qpid-dispatch-xp/synthetic
+git clone https://github.com/msimonin/ombt-orchestrator
+cd ombt-orchestrator
 ```
 
 * Install the dependencies
