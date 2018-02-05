@@ -15,11 +15,15 @@
     name: pip
     state: latest
 
+- name: Install target version of docker
+  pip:
+    name: docker
+    version: 2.7.0
+
 - name: Install some python bindings
   pip:
     name: "{{ item }}"
   with_items:
-    - docker
     - influxdb
 
 - name: Mount /run
