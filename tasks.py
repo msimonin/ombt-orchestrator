@@ -311,8 +311,8 @@ def prepare(env=None, broker=BROKER, **kwargs):
     control_bus_conf = [{
         "port": 5672,
         "management_port": 15672,
-        "machine": machines[0]
-    }]
+        "machine": machine
+    } for machine in machines]
     env.update({"control_bus_conf": [RabbitMQConf(c) for c in control_bus_conf]})
     ansible_control_bus_conf = {"control_bus_conf": control_bus_conf}
 
@@ -387,7 +387,7 @@ def test_case_1(
         },
         {
             "agent_type": "controller",
-            "number": int(nbr_topics),
+            "number": len(env["control_bus_conf"]),
             "machines": env["roles"]["ombt-control"],
             "klass": OmbtController,
             "kwargs": {

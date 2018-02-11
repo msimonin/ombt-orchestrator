@@ -19,22 +19,28 @@ registry:
   type: internal
 g5k:
   #reservation: "2017-12-06 14:40:00"
-  walltime: "2:00:00"
+  walltime: "4:00:00"
   dhcp: true
-  job_name: rabbitmq-xp-daytest
+  job_name: rmq
   env_name: debian9-x64-nfs
   resources:
     machines:
       - roles:
           - control-bus
           - ombt-control
+          - telegraf
+        cluster: grisou
+        nodes: 2
+        primary_network: n1
+        secondary_network: []
+      - roles:
           - control
           - registry
           - telegraf
           - influxdb
           - grafana
           - chrony-server
-        cluster: parasilo
+        cluster: grisou
         nodes: 1
         primary_network: n1
         secondary_networks: []
@@ -42,7 +48,7 @@ g5k:
           - bus
           - telegraf
           - chrony
-        cluster: parasilo
+        cluster: grisou
         nodes: 1
         primary_network: n1
         secondary_networks: []
@@ -50,7 +56,7 @@ g5k:
           - ombt-server
           - telegraf
           - chrony
-        cluster: parasilo
+        cluster: grisou
         nodes: 1 
         primary_network: n1
         secondary_networks: []
@@ -58,7 +64,7 @@ g5k:
           - ombt-client
           - telegraf
           - chrony
-        cluster: parasilo
+        cluster: grisou
         nodes: 1
         primary_network: n1
         secondary_networks: []
