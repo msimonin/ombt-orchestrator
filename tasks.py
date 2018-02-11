@@ -280,8 +280,39 @@ def inventory(env=None, **kwargs):
     generate_inventory(roles, networks, env["inventory"], check_networks=True)
 
 
+def generate_bus_conf(config, machines):
+    """Generate the bus configuration.
+
+    Args:
+        config(dict): Configuration of the bus (Most probably extracted from the
+            global config)
+        machines(list): List of machines on which the bus agents will be
+            installed
+
+    Returns:
+        List of configurations to use for each machine.
+    """
+    if config["_type"] == "rabbitmq":
+        bus_conf = [{
+            "port": 5672,
+            "management_port": 15672,
+            "machine": machine
+        } for machine in machines]
+        # saving the conf object
+        bus_conf = [RabbitMQConf(c) for c in bus_conf]
+    elif config["_type"] == "qdr":
+        # Building the graph of routers
+        graph = generate(config["type"], *config["args"])
+        bus_conf = get_conf(graph, machines, round_robin)
+        bus_conf = [QdrConf(c) for c in bus_conf.values()]
+    else:
+        raise Exception("Unknown broker chosen")
+    return bus_conf
+
+
 @enostask()
 def prepare(env=None, broker=BROKER, **kwargs):
+
     # Generate inventory
     extra_vars = {
         "registry": env["config"]["registry"],
@@ -293,41 +324,37 @@ def prepare(env=None, broker=BROKER, **kwargs):
     # parameters of each agents of the bus
     # This configuration dict is used in subsequent test* tasks to configure the
     # ombt agents.
-    roles = env["roles"]
-    machines = [desc.alias for desc in roles["bus"]]
-    # Get the specific configuration from the file
+
+    roles= env["roles"]
+
+    # Get the config of the bus
+    # We inject the type
     config = env["config"][broker]
+    if not config:
+        # NOTE(msimonin) treating the case
+        # broker1:
+        # broker2:
+        #   some_key: some_value
+        # where broker1 is left without configuration resulting in None value
+        config = {}
 
-    if broker == "rabbitmq":
-        # NOTE(msimonin): generate the configuration for rabbitmq
-        # Assuming only one node for now
-        bus_conf = [{
-            "port": 5672,
-            "management_port": 15672,
-            "machine": machines[0]
-        }]
-        # saving the conf object
-        env.update({"bus_conf": [RabbitMQConf(c) for c in bus_conf]})
-        # but passing its serialization to ansible
-        ansible_bus_conf = {"bus_conf": bus_conf}
-    elif broker == "qdr":
-        # Building the graph of routers
-        graph = generate(config["type"], *config["args"])
-        bus_conf = get_conf(graph, machines, round_robin)
-        env.update({"bus_conf": [QdrConf(c) for c in bus_conf.values()]})
-        ansible_bus_conf = {"bus_conf": list(bus_conf.values())}
-    else:
-        raise Exception("Unknown broker chosen")
+    # Generate the config for the bus
+    config["_type"] = broker
+    machines = [desc.alias for desc in roles["bus"]]
+    bus_conf = generate_bus_conf(config, machines)
+    env.update({"bus_conf": bus_conf})
+    ansible_bus_conf = {"bus_conf": [b.to_dict() for b in bus_conf]}
 
-    # Let's do the same for the control bus
+    # NOTE(msimonin): we do the same for the control bus
+    # For now, we only assume rabbitMQ as control bus
+    config = {
+        "_type": "rabbitmq",
+    }
     machines = [desc.alias for desc in roles["control-bus"]]
-    control_bus_conf = [{
-        "port": 5672,
-        "management_port": 15672,
-        "machine": machines[0]
-    }]
-    env.update({"control_bus_conf": [RabbitMQConf(c) for c in control_bus_conf]})
-    ansible_control_bus_conf = {"control_bus_conf": control_bus_conf}
+    control_bus_conf = generate_bus_conf(config, machines)
+    env.update({"control_bus_conf": control_bus_conf})
+    ansible_control_bus_conf = {"control_bus_conf": [b.to_dict() for b in
+                                                     control_bus_conf]}
 
     # use deploy of each role
     extra_vars.update({"enos_action": "deploy"})
