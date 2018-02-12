@@ -39,6 +39,10 @@
   interfaces = []
 [[inputs.docker]]
   endpoint = "unix:///var/run/docker.sock"
+{% if inventory_hostname in groups['bus'] or inventory_hostname in groups['control-bus'] %}
+[[inputs.netstat]]
+    interval = "30s"
+{% endif %}
 {% if (broker is defined and broker=="rabbitmq" and inventory_hostname in groups['bus']) or inventory_hostname in groups['control-bus'] %}
 [[inputs.rabbitmq]]
     interval = "30s"
