@@ -12,7 +12,7 @@
 {% endif %}
 
 [agent]
-  interval = "5s"
+  interval = "10s"
   round_interval = true
   metric_batch_size = 1000
   metric_buffer_limit = 10000
@@ -39,9 +39,15 @@
   interfaces = []
 [[inputs.docker]]
   endpoint = "unix:///var/run/docker.sock"
+{% if inventory_hostname in groups['bus'] or inventory_hostname in groups['control-bus'] %}
+[[inputs.netstat]]
+    interval = "30s"
+{% endif %}
 {% if (broker is defined and broker=="rabbitmq" and inventory_hostname in groups['bus']) or inventory_hostname in groups['control-bus'] %}
 [[inputs.rabbitmq]]
     interval = "30s"
+    # We'll likely have thousands of queues, so no don't get individual statistics.
+    queues = []
 {% endif %}
 [[outputs.influxdb]]
   urls = ["http://{{ hostvars[groups['influxdb'][0]]['ansible_' + control_network].ipv4.address }}:8086"]
