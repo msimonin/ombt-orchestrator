@@ -1,6 +1,9 @@
+from __future__ import print_function
+
 import json
 import operator
 import os
+import sys
 
 from execo_engine import sweep, ParamSweeper
 
@@ -37,7 +40,6 @@ tc_filters = {
 }
 
 
-
 def campaign(broker, provider, conf, test, env):
     """
 
@@ -48,6 +50,7 @@ def campaign(broker, provider, conf, test, env):
     :param env:
     :return:
     """
+
     def generate_id(params):
         """Generate a unique ID based on the provided parameters.
 
@@ -96,11 +99,17 @@ def campaign(broker, provider, conf, test, env):
     cli.PROVIDERS[provider](broker=broker, config=config, env=test)
     t.inventory()
     while current_parameters:
-        current_parameters.pop('backup_dir', None)
-        current_parameters.update({'backup_dir': generate_id(current_parameters)})
-        t.prepare(broker=broker)
-        tc_filters[test]['defn'](**current_parameters)
-        sweeper.done(current_parameters)
-        dump_parameters(current_parameters)
-        current_parameters = sweeper.get_next(tc_filters[test]['filtr'])
-        t.destroy()
+        try:
+            current_parameters.pop('backup_dir', None)
+            current_parameters.update({'backup_dir': generate_id(current_parameters)})
+            t.prepare(broker=broker)
+            tc_filters[test]['defn'](**current_parameters)
+            sweeper.done(current_parameters)
+            dump_parameters(current_parameters)
+            current_parameters = sweeper.get_next(tc_filters[test]['filtr'])
+        except (RuntimeError, ValueError, KeyError, OSError) as error:
+            print(error, file=sys.stderr)
+            print(error.args, file=sys.stderr)
+        finally:
+            sweeper.skip(current_parameters)
+            t.destroy()
