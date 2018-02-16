@@ -362,6 +362,8 @@ def prepare(env=None, broker=BROKER, **kwargs):
     bus_conf = generate_bus_conf(config, machines)
     env.update({"bus_conf": bus_conf})
     ansible_bus_conf = {"bus_conf": [b.to_dict() for b in bus_conf]}
+    # We inject the bus configuration taken from the configuration
+    ansible_bus_conf.update(config)
 
     # NOTE(msimonin): we do the same for the control bus
     # For now, we only assume rabbitMQ as control bus
