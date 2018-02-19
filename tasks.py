@@ -219,14 +219,16 @@ def load_config(path):
     return configuration
 
 
-def get_current_directory(filename='current'):
-    """Get path of current working directory followed by a filename (directory).
-
-    :param filename: Name of the directory following the current working directory.
-    :return: The path of the filename as string appended to the current working directory.
-    """
+def get_backup_directory(backup_dir):
+    # Create the backup dir for an experiment
+    # NOTE(msimonin): We don't need to identify the backup dir we could use a dedicated env name for that
     cwd = os.getcwd()
-    return os.path.join(cwd, filename)
+    # 'current' directory is constant because it depends on enoslib implementation
+    current_directory = os.path.join(cwd, 'current')
+    backup_dir = os.path.join(current_directory, backup_dir)
+    # TODO remove sys call by python API
+    os.system("mkdir -p %s" % backup_dir)
+    return backup_dir
 
 
 def get_topics(number):
@@ -431,10 +433,7 @@ def test_case(
         version=VERSION,
         backup_dir=BACKUP_DIR,
         env=None, **kwargs):
-    # Create the backup dir for this experiment
-    # NOTE(msimonin): We don't need to identify the backup dir we could use a dedicated env name for that
-    backup_dir = os.path.join(get_current_directory(), backup_dir)
-    os.system("mkdir -p %s" % backup_dir)
+    backup_dir = get_backup_directory(backup_dir)
     extra_vars = {
         "backup_dir": backup_dir,
         "ombt_version": version,
@@ -542,10 +541,12 @@ def validate(env=None, **kwargs):
 
 
 @enostask()
-def backup(env=None, **kwargs):
+def backup(backup_dir=BACKUP_DIR,
+           env=None, **kwargs):
+    backup_dir = get_backup_directory(backup_dir)
     extra_vars = {
         "enos_action": "backup",
-        "backup_dir": get_current_directory()
+        "backup_dir": backup_dir
     }
 
     run_ansible(["ansible/site.yml"], env["inventory"], extra_vars=extra_vars)

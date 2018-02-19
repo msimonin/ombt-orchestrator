@@ -69,8 +69,11 @@ def destroy():
 
 
 @cli.command(help="Backup the environment")
-def backup():
-    t.backup()
+@click.option("--backup",
+              default=t.BACKUP_DIR,
+              help="Set backup directory instead of default 'backup'")
+def backup(backup):
+    t.backup(backup_dir=backup)
 
 
 @cli.command(help="Runs the test case 1: one single large (distributed) target")
