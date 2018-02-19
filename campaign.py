@@ -90,8 +90,8 @@ def campaign(broker, force, provider, conf, test, env):
             dump_parameters(current_env_dir, current_parameters)
             current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
         except (EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
+            sweeper.skip(current_parameters)
             print(error, file=sys.stderr)
             print(error.args, file=sys.stderr)
         finally:
-            sweeper.skip(current_parameters)
             t.destroy()
