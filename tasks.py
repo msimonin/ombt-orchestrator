@@ -7,9 +7,8 @@ from enoslib.infra.enos_chameleonkvm.provider import Chameleonkvm
 from enoslib.infra.enos_g5k.provider import G5k
 from enoslib.infra.enos_vagrant.provider import Enos_vagrant
 from enoslib.task import enostask
-from qpid_generator.configurations import get_conf
-from qpid_generator.distribute import round_robin
-from qpid_generator.graph import generate
+
+from qpid_dispatchgen import get_conf, generate, round_robin
 
 # DEFAULT PARAMETERS
 BROKER = "qdr"
