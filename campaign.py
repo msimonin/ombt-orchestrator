@@ -69,7 +69,7 @@ def generate_id(params):
     return '-'.join(["%s__%s" % (replace(k), replace(v)) for k, v in sorted(params.items())])
 
 
-def campaign(broker, force, provider, conf, test, env):
+def campaign(test, provider, force, conf, env):
     config = t.load_config(conf)
     parameters = config['campaign'][test]
     sweeps = sweep(parameters)
@@ -78,13 +78,15 @@ def campaign(broker, force, provider, conf, test, env):
                            sweeps=sweeps,
                            save_sweeps=True,
                            name=test)
-    current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
-    t.PROVIDERS[provider](broker=broker, force=force, config=config, env=current_env_dir)
+    t.PROVIDERS[provider](force=force,
+                          config=config,
+                          env=current_env_dir)
     t.inventory()
+    current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
     while current_parameters:
         try:
             current_parameters.update({'backup_dir': generate_id(current_parameters)})
-            t.prepare(broker=broker)
+            t.prepare(broker=current_parameters['driver'])
             TEST_CASES[test]['defn'](**current_parameters)
             sweeper.done(current_parameters)
             dump_parameters(current_env_dir, current_parameters)

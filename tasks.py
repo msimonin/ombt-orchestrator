@@ -259,27 +259,23 @@ def get_topics(number):
 # vagrant you can't mix the two of them in the future we might want to
 # factorize it and have a switch on the command line to choose.
 @enostask(new=True)
-def g5k(env=None, broker=BROKER, force=False, config=None, **kwargs):
-    provider = G5k(config["g5k"])
-    roles, networks = provider.init(force_deploy=force)
-    env["config"] = config
-    env["roles"] = roles
-    env["networks"] = networks
+def g5k(force=False, config=None, env=None, **kwargs):
+    init_provider(G5k, 'g5k', env=env, force=force, config=config, **kwargs)
 
 
 @enostask(new=True)
-def vagrant(env=None, broker=BROKER, force=False, config=None, **kwargs):
-    provider = Enos_vagrant(config["vagrant"])
-    roles, networks = provider.init(force_deploy=force)
-    env["config"] = config
-    env["roles"] = roles
-    env["networks"] = networks
+def vagrant(force=False, config=None, env=None, **kwargs):
+    init_provider(Enos_vagrant, 'vagrant', env=env, force=force, config=config, **kwargs)
 
 
 @enostask(new=True)
-def chameleon(env=None, broker=BROKER, force=False, config=None, **kwargs):
-    provider = Chameleonkvm(config["chameleon"])
-    roles, networks = provider.init(force_deploy=force)
+def chameleon(force=False, config=None, env=None, **kwargs):
+    init_provider(Chameleonkvm, 'chameleon', env=env, force=force, config=config, **kwargs)
+
+
+def init_provider(provider, name, force=False, env=None, config=None, **kwargs):
+    instance = provider(config[name])
+    roles, networks = instance.init(force_deploy=force)
     env["config"] = config
     env["roles"] = roles
     env["networks"] = networks
@@ -290,6 +286,7 @@ PROVIDERS = {
     "vagrant": vagrant,
     "chameleon": chameleon
 }
+
 
 @enostask()
 def inventory(env=None, **kwargs):
@@ -303,15 +300,13 @@ def generate_bus_conf(config, machines):
     """Generate the bus configuration.
 
     Args:
-        config(dict): Configuration of the bus (Most probably extracted from the
-            global config)
-        machines(list): List of machines on which the bus agents will be
-            installed
+        config(dict): Configuration of the bus (Mostly extracted from the global config)
+        machines(list): machines on which the bus agents will be installed
 
     Returns:
         List of configurations to use for each machine.
     """
-    if config["_type"] == "rabbitmq":
+    if config["type"] == "rabbitmq":
         bus_conf = [{
             "port": 5672,
             "management_port": 15672,
@@ -319,19 +314,18 @@ def generate_bus_conf(config, machines):
         } for machine in machines]
         # saving the conf object
         bus_conf = [RabbitMQConf(c) for c in bus_conf]
-    elif config["_type"] == "qdr":
+    elif config["type"] == "qdr":
         # Building the graph of routers
-        graph = generate(config["type"], *config["args"])
+        graph = generate(config["topology"], *config["args"])
         bus_conf = get_conf(graph, machines, round_robin)
         bus_conf = [QdrConf(c) for c in bus_conf.values()]
     else:
-        raise Exception("Unknown broker chosen")
+        raise TypeError("Unknown broker chosen")
     return bus_conf
 
 
 @enostask()
-def prepare(env=None, broker=BROKER, **kwargs):
-
+def prepare(broker=BROKER, env=None, **kwargs):
     # Generate inventory
     extra_vars = {
         "registry": env["config"]["registry"],
@@ -345,44 +339,29 @@ def prepare(env=None, broker=BROKER, **kwargs):
     # ombt agents.
 
     roles = env["roles"]
+    # Get the config of the bus, inject the type
+    # treating the case where a broker is left without conf resulting in 'None' value
+    config = env["config"].get(env['drivers'][broker], {})
 
-    # Get the config of the bus
-    # We inject the type
-    config = env["config"][broker]
-    if not config:
-        # NOTE(msimonin) treating the case
-        # broker1:
-        # broker2:
-        #   some_key: some_value
-        # where broker1 is left without configuration resulting in None value
-        config = {}
+    def generate_ansible_conf(driver, role):
+        config['type'] = driver
+        machines = [desc.alias for desc in roles[role]]
+        bus_conf = generate_bus_conf(config, machines)
+        env_key = '{}_conf'.format(role)
+        env.update({env_key: bus_conf})
+        ansible_conf = {env_key: [b.to_dict() for b in bus_conf]}
+        # inject the bus configuration taken from the configuration
+        ansible_conf.update(config)
+        return ansible_conf
 
-    # Generate the config for the bus
-    config["_type"] = broker
-    machines = [desc.alias for desc in roles["bus"]]
-    bus_conf = generate_bus_conf(config, machines)
-    env.update({"bus_conf": bus_conf})
-    ansible_bus_conf = {"bus_conf": [b.to_dict() for b in bus_conf]}
-    # We inject the bus configuration taken from the configuration
-    ansible_bus_conf.update(config)
-
-    # NOTE(msimonin): we do the same for the control bus
+    ansible_bus_conf = generate_ansible_conf(broker, 'bus')
     # For now, we only assume rabbitMQ as control bus
-    config = {
-        "_type": "rabbitmq",
-    }
-    machines = [desc.alias for desc in roles["control-bus"]]
-    control_bus_conf = generate_bus_conf(config, machines)
-    env.update({"control_bus_conf": control_bus_conf})
-    ansible_control_bus_conf = {"control_bus_conf": [b.to_dict() for b in
-                                                     control_bus_conf]}
-
+    ansible_control_bus_conf = generate_ansible_conf('rabbitmq', 'control-bus')
     # use deploy of each role
     extra_vars.update({"enos_action": "deploy"})
     extra_vars.update(ansible_bus_conf)
     extra_vars.update(ansible_control_bus_conf)
-
-    # Finally let's give ansible the bus_conf
+    # finally let's give ansible the bus conf
     if config:
         extra_vars.update(config)
 

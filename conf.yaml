@@ -9,12 +9,27 @@ campaign:
     version: ["beyondtheclouds/ombt:latest"]
     length: [1024]
     executor: ["eventlet"]
-rabbitmq:
-qdr:
-  type: complete_graph
-  args: [4]
-  qdr_image: msimonin/qdrouterd-collectd
-  qdr_version: 1.0.0
+    # driver is the adopted term in ombt for brokers or routers
+    driver: ["broker-default", "router-4"]
+  test_case_2:
+    nbr_topics: [10]
+    call_type: ["rpc-call", "rpc-cast"]
+    nbr_calls: [1000]
+    pause: [0.1]
+    timeout: [8000]
+    version: ["beyondtheclouds/ombt:latest"]
+    length: [1024]
+    executor: ["threading"]
+    driver: ["broker-default"]
+drivers:
+  broker-default:
+    type: rabbitmq
+  router-4:
+    type: qdr
+    topology: complete_graph
+    args: [4]
+    qdr_image: msimonin/qdrouterd-collectd
+    qdr_version: 1.0.0
 registry:
   type: internal
 g5k:

@@ -250,29 +250,25 @@ def test_case_4(nbr_clients, nbr_servers, nbr_topics, nbr_calls, pause, timeout,
                   env=env)
 
 
-@cli.command(help="Performs tests according to the (swept) parameters described in configuration")
-@click.argument('broker')
+@cli.command(help="Performs a test according to the (swept) parameters described in configuration")
+@click.argument('test')
 @click.option("--provider",
               default="vagrant",
               help="Deploy with the given provider")
 @click.option("--force",
               is_flag=True,
-              help="force redeploy")
+              help="Force redeploy")
 @click.option("--conf",
               default=DEFAULT_CONF,
               help="Configuration file to use")
-@click.option("--test",
-              default="test_case_1",
-              help="Launch a test campaign given a test")
 @click.option("--env",
               default=None,
-              help="Use this environment directory instead of the default one")
-def campaign(broker, force, provider, conf, test, env):
-    c.campaign(broker=broker,
+              help="Use this environment directory")
+def campaign(test, provider, force, conf, env):
+    c.campaign(test=test,
                provider=provider,
                force=force,
                conf=conf,
-               test=test,
                env=env)
 
 
