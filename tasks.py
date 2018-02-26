@@ -329,7 +329,7 @@ def prepare(broker=BROKER, env=None, **kwargs):
     # Generate inventory
     extra_vars = {
         "registry": env["config"]["registry"],
-        "broker": broker
+        "broker": env["config"]['drivers'][broker]['type']
     }
     # Preparing the installation of the bus under evaluation
     # Need to pass specific options
@@ -340,23 +340,23 @@ def prepare(broker=BROKER, env=None, **kwargs):
 
     roles = env["roles"]
     # Get the config of the bus, inject the type
-    # treating the case where a broker is left without conf resulting in 'None' value
-    config = env["config"].get(env['drivers'][broker], {})
+    config = env["config"]['drivers'].get(broker)
 
-    def generate_ansible_conf(driver, role):
-        config['type'] = driver
+    def generate_ansible_conf(configuration, role):
         machines = [desc.alias for desc in roles[role]]
-        bus_conf = generate_bus_conf(config, machines)
-        env_key = '{}_conf'.format(role)
-        env.update({env_key: bus_conf})
-        ansible_conf = {env_key: [b.to_dict() for b in bus_conf]}
+        bus_conf = generate_bus_conf(configuration, machines)
+        # the key for the 'control-bus' role is 'control_bus'
+        key = '{}_conf'.format(role.replace('-', '_'))
+        env.update({key: bus_conf})
+        ansible_conf = {key: [b.to_dict() for b in bus_conf]}
         # inject the bus configuration taken from the configuration
-        ansible_conf.update(config)
+        ansible_conf.update(configuration)
         return ansible_conf
 
-    ansible_bus_conf = generate_ansible_conf(broker, 'bus')
-    # For now, we only assume rabbitMQ as control bus
-    ansible_control_bus_conf = generate_ansible_conf('rabbitmq', 'control-bus')
+    ansible_bus_conf = generate_ansible_conf(config, 'bus')
+    # For now, we only assume rabbitMQ as control bus always called 'broker_default'
+    rabbit_conf =  env["config"]['drivers'].get('broker-default')
+    ansible_control_bus_conf = generate_ansible_conf(rabbit_conf, 'control-bus')
     # use deploy of each role
     extra_vars.update({"enos_action": "deploy"})
     extra_vars.update(ansible_bus_conf)
@@ -366,7 +366,7 @@ def prepare(broker=BROKER, env=None, **kwargs):
         extra_vars.update(config)
 
     run_ansible(["ansible/site.yml"], env["inventory"], extra_vars=extra_vars)
-    env["broker"] = broker
+    env["broker"] = config['type']
 
 
 @enostask()
