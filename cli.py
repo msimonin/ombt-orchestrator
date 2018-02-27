@@ -19,10 +19,10 @@ def cli():
 
 
 @cli.command(help="Claim resources from a provider and configure them")
-@click.argument('broker')
-@click.option("--provider",
-              default="vagrant",
-              help="Deploy with the given provider")
+@click.argument('provider')
+@click.option("--driver",
+              default=t.DRIVER,
+              help="Agents' bus driver")
 @click.option("--force",
               is_flag=True)
 @click.option("--conf",
@@ -30,11 +30,11 @@ def cli():
               help="Configuration file to use")
 @click.option("--env",
               help="Use this environment directory instead of the default one")
-def deploy(broker, provider, force, conf, env):
+def deploy(provider, driver, force, conf, env):
     config = t.load_config(conf)
-    t.PROVIDERS[provider](broker=broker, force=force, config=config, env=env)
+    t.PROVIDERS[provider](force=force, config=config, env=env)
     t.inventory()
-    t.prepare(broker=broker)
+    t.prepare(driver=driver, env=env)
 
 
 @cli.command(help="Claim resources on Grid'5000 (from a frontend)")
@@ -53,12 +53,12 @@ def vagrant(force):
     t.vagrant(force)
 
 
-@cli.command(help="Generate the Ansible inventory file. [after g5k,vagrant]")
+@cli.command(help="Generate the Ansible inventory file. [after g5k, vagrant]")
 def inventory():
     t.inventory()
 
 
-@cli.command(help="Configure the resources. [after g5k,vagrant and inventory]")
+@cli.command(help="Configure the resources. [after g5k, vagrant and inventory]")
 def prepare():
     t.prepare()
 
@@ -250,29 +250,25 @@ def test_case_4(nbr_clients, nbr_servers, nbr_topics, nbr_calls, pause, timeout,
                   env=env)
 
 
-@cli.command(help="Performs tests according to the (swept) parameters described in configuration")
-@click.argument('broker')
+@cli.command(help="Performs a test according to the (swept) parameters described in configuration")
+@click.argument('test')
 @click.option("--provider",
               default="vagrant",
               help="Deploy with the given provider")
 @click.option("--force",
               is_flag=True,
-              help="force redeploy")
+              help="Force redeploy")
 @click.option("--conf",
               default=DEFAULT_CONF,
               help="Configuration file to use")
-@click.option("--test",
-              default="test_case_1",
-              help="Launch a test campaign given a test")
 @click.option("--env",
               default=None,
-              help="Use this environment directory instead of the default one")
-def campaign(broker, force, provider, conf, test, env):
-    c.campaign(broker=broker,
+              help="Use this environment directory")
+def campaign(test, provider, force, conf, env):
+    c.campaign(test=test,
                provider=provider,
                force=force,
                conf=conf,
-               test=test,
                env=env)
 
 
