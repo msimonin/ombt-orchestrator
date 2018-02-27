@@ -84,7 +84,7 @@ Commands:
 
 ```
 # confs/vagrant-rabbitmq.yaml will be read
-./cli.py deploy --provider=vagrant rabbitmq
+./cli.py deploy --driver=rabbitmq vagrant
 
 # Launch the one benchmark
 ./cli.py test_case_1 --nbr_clients 10 --nbr_servers 2
@@ -109,7 +109,7 @@ Grafana is available on the port 3000 of the control node (check the inventory f
 ```
 # Preparing the next run by cleaning the environment
 ./cli.py destroy
-./cli.py deploy --provider=vagrant rabbitmq
+./cli.py deploy --driver=rabbitmq vagrant
 
 # Next run
 ./cli.py test_case_1 --nbr_clients 20 --nbr_servers 2

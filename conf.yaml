@@ -23,7 +23,7 @@ campaign:
     driver: ["broker"]
 drivers:
   # default broker must be present (required by enostask prepare)
-  broker:
+  rabbitmq:
     type: rabbitmq
   router-4:
     type: qdr

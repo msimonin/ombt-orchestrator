@@ -11,7 +11,7 @@ from enoslib.task import enostask
 from qpid_dispatchgen import get_conf, generate, round_robin
 
 # DEFAULT PARAMETERS
-DRIVER = "broker"
+DRIVER = "rabbitmq"
 NBR_CLIENTS = 1
 NBR_SERVERS = 1
 NBR_TOPICS = 1
@@ -354,8 +354,10 @@ def prepare(driver=DRIVER, env=None, **kwargs):
         return ansible_conf
 
     ansible_bus_conf = generate_ansible_conf(config, 'bus')
-    # For now, we only assume rabbitMQ as control bus always called 'broker'
-    rabbit_conf =  env['config']['drivers'].get('broker')
+    # Note(msimonin): use an implicit rabbitmq broker for the control-bus
+    rabbit_conf =  {
+        "type": "rabbitmq"
+    }
     ansible_control_bus_conf = generate_ansible_conf(rabbit_conf, 'control-bus')
     # use deploy of each role
     extra_vars.update({"enos_action": "deploy"})
