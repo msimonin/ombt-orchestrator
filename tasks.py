@@ -16,12 +16,12 @@ NBR_CLIENTS = 1
 NBR_SERVERS = 1
 NBR_TOPICS = 1
 CALL_TYPE = "rpc-call"
-NBR_CALLS = "100"
+NBR_CALLS = 100
 PAUSE = 0.0
 TIMEOUT = 60
 VERSION = "beyondtheclouds/ombt:latest"
 BACKUP_DIR = "backup"
-LENGTH = "1024"
+LENGTH = 1024
 EXECUTOR = "threading"
 
 tc = {

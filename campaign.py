@@ -24,9 +24,9 @@ def filter_3(parameters):
 
 
 def filter_params(parameters, key='nbr_clients', condition=lambda unused: True):
-    # sort by 'call type' first then use the key
-    # (i.e., group executions by call type then sorted incrementally by key)
-    params = sorted(parameters, key=operator.itemgetter('call_type', key))
+    # sort by 'driver' first, then by 'call type' and finally use the key
+    # (i.e., group executions by driver-call_type and sort incrementally by key)
+    params = sorted(parameters, key=operator.itemgetter('driver', 'call_type', key))
     return (p for p in params if condition(p))
 
 
