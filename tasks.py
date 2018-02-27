@@ -11,7 +11,7 @@ from enoslib.task import enostask
 from qpid_dispatchgen import get_conf, generate, round_robin
 
 # DEFAULT PARAMETERS
-BROKER = "qdr"
+DRIVER = "broker"
 NBR_CLIENTS = 1
 NBR_SERVERS = 1
 NBR_TOPICS = 1
@@ -325,11 +325,11 @@ def generate_bus_conf(config, machines):
 
 
 @enostask()
-def prepare(broker=BROKER, env=None, **kwargs):
+def prepare(driver=DRIVER, env=None, **kwargs):
     # Generate inventory
     extra_vars = {
         "registry": env["config"]["registry"],
-        "broker": env["config"]['drivers'][broker]['type']
+        "broker": env['config']['drivers'][driver]['type']
     }
     # Preparing the installation of the bus under evaluation
     # Need to pass specific options
@@ -338,9 +338,9 @@ def prepare(broker=BROKER, env=None, **kwargs):
     # This configuration dict is used in subsequent test* tasks to configure the
     # ombt agents.
 
-    roles = env["roles"]
+    roles = env['roles']
     # Get the config of the bus, inject the type
-    config = env["config"]['drivers'].get(broker)
+    config = env['config']['drivers'].get(driver)
 
     def generate_ansible_conf(configuration, role):
         machines = [desc.alias for desc in roles[role]]
@@ -354,8 +354,8 @@ def prepare(broker=BROKER, env=None, **kwargs):
         return ansible_conf
 
     ansible_bus_conf = generate_ansible_conf(config, 'bus')
-    # For now, we only assume rabbitMQ as control bus always called 'broker_default'
-    rabbit_conf =  env["config"]['drivers'].get('broker-default')
+    # For now, we only assume rabbitMQ as control bus always called 'broker'
+    rabbit_conf =  env['config']['drivers'].get('broker')
     ansible_control_bus_conf = generate_ansible_conf(rabbit_conf, 'control-bus')
     # use deploy of each role
     extra_vars.update({"enos_action": "deploy"})

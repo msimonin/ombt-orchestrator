@@ -10,7 +10,7 @@ campaign:
     length: [1024]
     executor: ["eventlet"]
     # driver is the adopted term in ombt for brokers or routers
-    driver: ["broker-default", "router-4"]
+    driver: ["broker", "router-4"]
   test_case_2:
     nbr_topics: [10]
     call_type: ["rpc-call", "rpc-cast"]
@@ -20,9 +20,10 @@ campaign:
     version: ["beyondtheclouds/ombt:latest"]
     length: [1024]
     executor: ["threading"]
-    driver: ["broker-default"]
+    driver: ["broker"]
 drivers:
-  broker-default:
+  # default broker must be present (required by enostask prepare)
+  broker:
     type: rabbitmq
   router-4:
     type: qdr
@@ -33,7 +34,7 @@ drivers:
 registry:
   type: internal
 g5k:
-  #reservation: "2017-12-06 14:40:00"
+  #reservation: "2018-03-01 14:40:00"
   walltime: "2:00:00"
   dhcp: true
   job_name: rabbitmq-xp-daytest
