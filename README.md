@@ -118,3 +118,13 @@ Grafana is available on the port 3000 of the control node (check the inventory f
 > It's possible to force an experimentation dir with `--env mydir`
 
 > Note also that scripting from python is also possible using the function defined in `task.py`
+
+## Misc.
+
+* Bound clients or servers to specific bus agents:
+
+To bind ombt-clients to a specific bus instance you can declare the following
+`roles: [bus, bus-client]`. 
+
+Following the same idea ombt-servers can be bound to a specific bus instance using 
+`roles: [bus, bus-server]`
