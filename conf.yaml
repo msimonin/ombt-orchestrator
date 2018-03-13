@@ -1,29 +1,27 @@
 campaign:
   test_case_1:
-    nbr_servers: [1]
-    nbr_clients: [1]
+    nbr_servers: [1, 2]
+    nbr_clients: [1, 5]
     call_type: ["rpc-call"]
-    nbr_calls: [100000]
-    pause: [0.1]
+    nbr_calls: [100]
+    pause: [0, 0]
     timeout: [8000]
-    version: ["beyondtheclouds/ombt:latest"]
+    version: ["msimonin/ombt:singleton"]
     length: [1024]
-    executor: ["eventlet"]
-    # driver is the adopted term in ombt for brokers or routers
-    driver: ["broker", "router-4"]
+    executor: ["threading"]
+    driver: ["broker"]
   test_case_2:
     nbr_topics: [10]
     call_type: ["rpc-call", "rpc-cast"]
     nbr_calls: [1000]
     pause: [0.1]
     timeout: [8000]
-    version: ["beyondtheclouds/ombt:latest"]
+    version: ["msimonin/ombt:singleton"]
     length: [1024]
     executor: ["threading"]
-    driver: ["broker"]
+    driver: ["broker", "router-4"]
 drivers:
-  # default broker must be present (required by enostask prepare)
-  rabbitmq:
+  broker:
     type: rabbitmq
   router-4:
     type: qdr
@@ -91,15 +89,6 @@ vagrant:
   box: bento/debian-9.1
   resources:
     machines:
-      - roles:
-        - bus
-        - telegraf
-        - chrony
-        flavor: tiny
-        number: 1
-        networks:
-          - control_network
-          - internal_network
       - roles:
         - bus
         - telegraf

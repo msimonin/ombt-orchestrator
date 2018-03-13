@@ -1,5 +1,6 @@
 import os
 from abc import ABCMeta, abstractmethod
+import uuid
 
 import yaml
 from enoslib.api import run_ansible, generate_inventory, emulate_network, validate_network
@@ -15,11 +16,13 @@ DRIVER = "rabbitmq"
 NBR_CLIENTS = 1
 NBR_SERVERS = 1
 NBR_TOPICS = 1
+TOPICS = ["topic-0"]
 CALL_TYPE = "rpc-call"
 NBR_CALLS = 100
 PAUSE = 0.0
 TIMEOUT = 60
-VERSION = "beyondtheclouds/ombt:latest"
+#VERSION = "beyondtheclouds/ombt:latest"
+VERSION = "msimonin/ombt:singleton"
 BACKUP_DIR = "backup"
 LENGTH = 1024
 EXECUTOR = "threading"
@@ -29,6 +32,33 @@ tc = {
     "default_delay": "20ms",
     "default_rate": "1gbit",
 }
+
+
+def get_topics(number):
+    """Create a list of topic names.
+
+    The names have the following format: topic_<id>. Where the id is a
+    normalized number preceded by leading zeros.
+
+    >>> get_topics(1)
+    ['topic-0']
+    >>> get_topics(2)
+    ['topic-0', 'topic-1']
+    >>> get_topics(0)
+    []
+    >>> get_topics(10) # doctest: +ELLIPSIS
+    ['topic-0', 'topic-1', 'topic-2', 'topic-3', ..., 'topic-8', 'topic-9']
+    >>> get_topics(11) # doctest: +ELLIPSIS
+    ['topic-00', 'topic-01', 'topic-02', 'topic-03', ..., 'topic-09', 'topic-10']
+    >>> get_topics(1000) # doctest: +ELLIPSIS
+    ['topic-000', 'topic-001', 'topic-002', 'topic-003', ..., 'topic-999']
+
+    :param number: Number of topic names to generate.
+    :return: A list of topic names.
+    """
+    length = len(str(number)) if number % 10 else len(str(number)) - 1
+    sequence = ('{number:0{width}}'.format(number=n, width=length) for n in range(number))
+    return ['topic-{}'.format(e) for e in sequence]
 
 
 class BusConf(object):
@@ -149,6 +179,7 @@ class OmbtAgent(object):
         """Build the command for the ombt agent.
         """
         command = []
+        command.append("--unique")
         command.append("--timeout %s " % self.timeout)
         command.append("--topic %s " % self.topic)
         command.append(self.generate_connections())
@@ -157,7 +188,6 @@ class OmbtAgent(object):
         # if self.verbose:
         #    command.append("--output %s " % self.docker_log)
         return command
-
 
 class OmbtClient(OmbtAgent):
 
@@ -231,49 +261,24 @@ def get_backup_directory(backup_dir):
     return backup_dir
 
 
-def get_topics(number):
-    """Create a list of topic names.
-
-    The names have the following format: topic_<id>. Where the id is a normalized number preceded by leading zeros.
-
-    >>> get_topics(1)
-    ['topic-0']
-    >>> get_topics(2)
-    ['topic-0', 'topic-1']
-    >>> get_topics(0)
-    []
-    >>> get_topics(10)
-    ['topic-0', 'topic-1', 'topic-2', 'topic-3', 'topic-4', 'topic-5', 'topic-6', 'topic-7', 'topic-8', 'topic-9']
-    >>> (get_topics(11)
-    ['topic-00', 'topic-01', 'topic-02', 'topic-03', 'topic-04', 'topic-05', 'topic-06', 'topic-07', 'topic-08', 'topic-09', 'topic-10']
-
-    :param number: Number of topic names to generate.
-    :return: A list of topic names.
-    """
-    length = len(str(number)) if number % 10 else len(str(number)) - 1
-    sequence = ('{number:0{width}}'.format(number=n, width=length) for n in range(number))
-    return ['topic-' + e for e in sequence]
-
-
-# The two following tasks are exclusive either you choose to go with g5k or
-# vagrant you can't mix the two of them in the future we might want to
-# factorize it and have a switch on the command line to choose.
+# g5k and vagrant are mutually exclusive, in the future we might want
+# to factorize it and have a switch on the command line to choose.
 @enostask(new=True)
-def g5k(force=False, config=None, env=None, **kwargs):
-    init_provider(G5k, 'g5k', env=env, force=force, config=config, **kwargs)
+def g5k(**kwargs):
+    init_provider(G5k, 'g5k', **kwargs)
 
 
 @enostask(new=True)
-def vagrant(force=False, config=None, env=None, **kwargs):
-    init_provider(Enos_vagrant, 'vagrant', env=env, force=force, config=config, **kwargs)
+def vagrant(**kwargs):
+    init_provider(Enos_vagrant, 'vagrant', **kwargs)
 
 
 @enostask(new=True)
-def chameleon(force=False, config=None, env=None, **kwargs):
-    init_provider(Chameleonkvm, 'chameleon', env=env, force=force, config=config, **kwargs)
+def chameleon(**kwargs):
+    init_provider(Chameleonkvm, 'chameleon', **kwargs)
 
 
-def init_provider(provider, name, force=False, env=None, config=None, **kwargs):
+def init_provider(provider, name, force=False, config=None, env=None, **kwargs):
     instance = provider(config[name])
     roles, networks = instance.init(force_deploy=force)
     env["config"] = config
@@ -327,20 +332,16 @@ def generate_bus_conf(config, machines):
 @enostask()
 def prepare(driver=DRIVER, env=None, **kwargs):
     # Generate inventory
+    config = env['config']['drivers'].get(driver, {'type': DRIVER})
     extra_vars = {
         "registry": env["config"]["registry"],
-        "broker": env['config']['drivers'][driver]['type']
-    }
-    # Preparing the installation of the bus under evaluation
-    # Need to pass specific options
-    # We generate a configuration dict that captures the minimal set of
-    # parameters of each agents of the bus
-    # This configuration dict is used in subsequent test* tasks to configure the
-    # ombt agents.
+        "broker": config["type"]}
 
+    # Preparing the installation of the bus under evaluation. Need to pass
+    # specific options. We generate a configuration dict that captures the
+    # minimal set of parameters of each agents of the bus. This configuration
+    # dict is used in subsequent test* tasks to configure the ombt agents.
     roles = env['roles']
-    # Get the config of the bus, inject the type
-    config = env['config']['drivers'].get(driver)
 
     def generate_ansible_conf(configuration, role):
         machines = [desc.alias for desc in roles[role]]
@@ -354,11 +355,9 @@ def prepare(driver=DRIVER, env=None, **kwargs):
         return ansible_conf
 
     ansible_bus_conf = generate_ansible_conf(config, 'bus')
-    # Note(msimonin): use an implicit rabbitmq broker for the control-bus
-    rabbit_conf =  {
-        "type": "rabbitmq"
-    }
-    ansible_control_bus_conf = generate_ansible_conf(rabbit_conf, 'control-bus')
+    # use an implicit rabbitmq broker for the control-bus by default
+    control_config = env['config']['drivers'].get('broker', {'type': DRIVER})
+    ansible_control_bus_conf = generate_ansible_conf(control_config, 'control-bus')
     # use deploy of each role
     extra_vars.update({"enos_action": "deploy"})
     extra_vars.update(ansible_bus_conf)
@@ -373,38 +372,42 @@ def prepare(driver=DRIVER, env=None, **kwargs):
 
 @enostask()
 def test_case_1(**kwargs):
-    # enforcing topic proper value in case the topics are declared in campaign
-    kwargs['nbr_topics'] = 1
+    kwargs['topics'] = get_topics(1)
     test_case(**kwargs)
 
 
 @enostask()
 def test_case_2(**kwargs):
-    kwargs['nbr_clients'] = kwargs['nbr_topics']
-    kwargs['nbr_servers'] = kwargs['nbr_topics']
+    if 'topics' not in kwargs:
+        nbr_topics = kwargs['nbr_topics']
+        kwargs['topics'] = get_topics(nbr_topics)
+        kwargs['nbr_clients'] = nbr_topics
+        kwargs['nbr_servers'] = nbr_topics
     test_case(**kwargs)
 
 
 @enostask()
 def test_case_3(**kwargs):
-    # enforcing topic proper value in case the topics are declared in campaign
-    kwargs['nbr_topics'] = 1
+    kwargs['topics'] = get_topics(1)
     kwargs['call_type'] = 'rpc_cast'
     test_case(**kwargs)
 
 
 @enostask()
 def test_case_4(**kwargs):
-    kwargs['nbr_clients'] = kwargs['nbr_topics'] * kwargs['nbr_clients']
-    kwargs['nbr_servers'] = kwargs['nbr_topics'] * kwargs['nbr_servers']
     kwargs['call_type'] = 'rpc_cast'
+    if 'topics' not in kwargs:
+        nbr_topics = kwargs['nbr_topics']
+        kwargs['topics'] = get_topics(nbr_topics)
+        kwargs['nbr_clients'] = nbr_topics * kwargs['nbr_clients']
+        kwargs['nbr_servers'] = nbr_topics * kwargs['nbr_servers']
     test_case(**kwargs)
 
 
 def test_case(
         nbr_clients=NBR_CLIENTS,
         nbr_servers=NBR_SERVERS,
-        nbr_topics=NBR_TOPICS,
+        topics=TOPICS,
         call_type=CALL_TYPE,
         nbr_calls=NBR_CALLS,
         pause=PAUSE,
@@ -413,7 +416,9 @@ def test_case(
         executor=EXECUTOR,
         version=VERSION,
         backup_dir=BACKUP_DIR,
+        iteration_id=None,
         env=None, **kwargs):
+    iteration_id = iteration_id or uuid.uuid4()
     backup_dir = get_backup_directory(backup_dir)
     extra_vars = {
         "backup_dir": backup_dir,
@@ -435,10 +440,10 @@ def test_case(
     descs = [
         {
             "agent_type": "rpc-client",
-            "number": int(nbr_clients),
+            "number": nbr_clients,
             "machines": env["roles"]["ombt-client"],
-            "bus_agents": [b for b in bus_conf if b.get_listener()["machine"] in
-                          machine_client],
+            "bus_agents": [b for b in bus_conf
+                           if b.get_listener()["machine"] in machine_client],
             "klass": OmbtClient,
             "kwargs": {
                 "timeout": timeout,
@@ -446,10 +451,10 @@ def test_case(
         },
         {
             "agent_type": "rpc-server",
-            "number": int(nbr_servers),
+            "number": nbr_servers,
             "machines": env["roles"]["ombt-server"],
-            "bus_agents": [b for b in bus_conf if b.get_listener()["machine"] in
-                          machine_server],
+            "bus_agents": [b for b in bus_conf
+                           if b.get_listener()["machine"] in machine_server],
             "klass": OmbtServer,
             "kwargs": {
                 "timeout": timeout,
@@ -458,7 +463,7 @@ def test_case(
         },
         {
             "agent_type": "controller",
-            "number": int(nbr_topics),
+            "number": 1,
             "machines": env["roles"]["ombt-control"],
             "bus_agents": bus_conf,
             "klass": OmbtController,
@@ -471,14 +476,6 @@ def test_case(
             }
         }]
 
-    iteration_id = str("-".join([
-        "nbr_servers__%s" % nbr_servers,
-        "nbr_clients__%s" % nbr_clients,
-        "nbr_topics__%s" % nbr_topics,
-        "call_type__%s" % call_type,
-        "nbr_calls__%s" % nbr_calls,
-        "pause__%s" % pause]))
-
     # build the specific variables for each client/server:
     # ombt_conf = {
     #   "machine01": [confs],
@@ -486,7 +483,6 @@ def test_case(
     # }
     ombt_confs = {}
     control_bus_conf = env["control_bus_conf"]
-    topics = get_topics(nbr_topics)
     for agent_desc in descs:
         machines = agent_desc["machines"]
         # make sure all the machines appears in the ombt_confs
@@ -500,18 +496,15 @@ def test_case(
             machine = machines[agent_index % len(machines)].alias
             # choose a bus agent
             # bus_agent = bus_conf[agent_index % len(bus_conf)]
-            bus_agent = agent_desc["bus_agents"][agent_index %
-                                                 len(agent_desc["bus_agents"])]
+            bus_agent = agent_desc["bus_agents"][agent_index % len(agent_desc["bus_agents"])]
             agent_id = "%s-%s-%s-%s" % (agent_desc["agent_type"], agent_index, topic, iteration_id)
             control_agent = control_bus_conf[agent_index % len(control_bus_conf)]
             kwargs = agent_desc["kwargs"]
-            kwargs.update({
-                "agent_id": agent_id,
-                "machine": machine,
-                "bus_agents": [bus_agent],
-                "topic": topic,
-                "control_agents": [control_agent]  # TODO
-            })
+            kwargs.update({"agent_id": agent_id,
+                           "machine": machine,
+                           "bus_agents": [bus_agent],
+                           "topic": topic,
+                           "control_agents": [control_agent]})
             ombt_confs[machine].append(agent_desc["klass"](**kwargs))
 
     ansible_ombt_confs = {}
@@ -539,8 +532,7 @@ def validate(env=None, **kwargs):
 
 
 @enostask()
-def backup(backup_dir=BACKUP_DIR,
-           env=None, **kwargs):
+def backup(backup_dir=BACKUP_DIR, env=None, **kwargs):
     backup_dir = get_backup_directory(backup_dir)
     extra_vars = {
         "enos_action": "backup",
