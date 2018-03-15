@@ -11,7 +11,7 @@ def get_conf(graph, machines, distribution):
     # connection. So we keep track of the already created
     # connections.
     connections = []
-    for node, nbrdict in graph.adjacency_iter():
+    for node, nbrdict in graph.adjacency():
         confs.setdefault(node, {})
         machine = ntm[node]
         idx = mtn[machine].index(node)
