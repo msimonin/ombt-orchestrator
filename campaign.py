@@ -182,7 +182,7 @@ def campaign(test, provider, force, conf, env):
             TEST_CASES[test]['defn'](**current_parameters)
             sweeper.done(current_parameters)
             dump_parameters(current_env_dir, current_parameters)
-        except (EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
+        except (AttributeError, EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
             sweeper.skip(current_parameters)
             print(error, file=sys.stderr)
             print(error.args, file=sys.stderr)
@@ -296,7 +296,7 @@ def incremental_campaign(test, provider, force, pause, conf, env):
                 dump_parameters(env_dir, current_parameters)
                 time.sleep(pause)
             sweeper.done(current_group)
-        except (EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
+        except (AttributeError, EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
             sweeper.skip(current_group)
             print(error, file=sys.stderr)
             print(error.args, file=sys.stderr)
