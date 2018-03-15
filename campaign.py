@@ -113,15 +113,17 @@ TEST_CASES = {
                     'filtr': filter_1,
                     'fixp': fix_1,
                     'key': 'nbr_clients',
-                    'zip': ['nbr_servers', 'nbr_clients', 'pause']},
+                    'zip': ['nbr_servers', 'nbr_clients', 'nbr_calls', 'pause']},
     'test_case_2': {'defn': t.test_case_2,
                     'filtr': filter_2,
                     'fixp': fix_2,
                     'key': 'nbr_topics',
-                    'zip': ['nbr_topics', 'pause']},
+                    'zip': ['nbr_topics', 'nbr_calls', 'pause']},
+    # TODO complete fixp and zip values
     'test_case_3': {'defn': t.test_case_3,
                     'filtr': filter_3,
                     'key': 'nbr_clients'},
+    # TODO complete fixp and zip values
     'test_case_4': {'defn': t.test_case_4,
                     'filtr': filter_2,  # same as tc2
                     'key': 'nbr_topics'}
