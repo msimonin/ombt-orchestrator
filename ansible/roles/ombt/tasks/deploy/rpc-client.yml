@@ -1,0 +1,10 @@
+---
+- name: Start ombt client(s)
+  docker_container:
+    image: "{{ ombt_version }}"
+    command: "{{ item.command }}"
+    name: "{{ item.name }}"
+    detach: "{{ item.detach }}"
+    network_mode: host
+    state: started
+  with_items: "{{ ombt_confs['rpc-client'][inventory_hostname] }}"

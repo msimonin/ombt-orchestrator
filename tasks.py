@@ -179,6 +179,7 @@ class OmbtAgent(object):
         """Build the command for the ombt agent.
         """
         command = []
+        command.append("--debug")
         command.append("--unique")
         command.append("--timeout %s " % self.timeout)
         command.append("--topic %s " % self.topic)
@@ -463,7 +464,7 @@ def test_case(
         },
         {
             "agent_type": "controller",
-            "number": 1,
+            "number": len(env["roles"]["control-bus"]),
             "machines": env["roles"]["ombt-control"],
             "bus_agents": bus_conf,
             "klass": OmbtController,
@@ -478,12 +479,25 @@ def test_case(
 
     # build the specific variables for each client/server:
     # ombt_conf = {
-    #   "machine01": [confs],
+    #   "rpc-client": {
+    #       "machine01": [confs],
+    #        ...
+    #   },
+    #   "rpc-server": {
+    #
+    #   },
+    #   "controller": {
+    #
+    #   }
     #   ...
     # }
     ombt_confs = {}
+    # serialized version of the above
+    # for Ansible
+    ansible_ombt_confs = {}
     control_bus_conf = env["control_bus_conf"]
     for agent_desc in descs:
+        agent_type = agent_desc["agent_type"]
         machines = agent_desc["machines"]
         # make sure all the machines appears in the ombt_confs
         for machine in machines:
@@ -497,7 +511,7 @@ def test_case(
             # choose a bus agent
             # bus_agent = bus_conf[agent_index % len(bus_conf)]
             bus_agent = agent_desc["bus_agents"][agent_index % len(agent_desc["bus_agents"])]
-            agent_id = "%s-%s-%s-%s" % (agent_desc["agent_type"], agent_index, topic, iteration_id)
+            agent_id = "%s-%s-%s-%s" % (agent_type, agent_index, topic, iteration_id)
             control_agent = control_bus_conf[agent_index % len(control_bus_conf)]
             kwargs = agent_desc["kwargs"]
             kwargs.update({"agent_id": agent_id,
@@ -505,11 +519,11 @@ def test_case(
                            "bus_agents": [bus_agent],
                            "topic": topic,
                            "control_agents": [control_agent]})
-            ombt_confs[machine].append(agent_desc["klass"](**kwargs))
-
-    ansible_ombt_confs = {}
-    for m, confs in ombt_confs.items():
-        ansible_ombt_confs[m] = [o.to_dict() for o in confs]
+            agent_conf = agent_desc["klass"](**kwargs)
+            ombt_confs.setdefault(agent_type, {})
+            ansible_ombt_confs.setdefault(agent_type, {})
+            ombt_confs[agent_type].setdefault(machine, []).append(agent_conf)
+            ansible_ombt_confs[agent_type].setdefault(machine, []).append(agent_conf.to_dict())
 
     extra_vars.update({'ombt_confs': ansible_ombt_confs})
     run_ansible(["ansible/test_case_1.yml"], env["inventory"], extra_vars=extra_vars)
