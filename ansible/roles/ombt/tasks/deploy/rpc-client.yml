@@ -7,4 +7,5 @@
     detach: "{{ item.detach }}"
     network_mode: host
     state: started
-  with_items: "{{ ombt_confs['rpc-client'][inventory_hostname] }}"
+  with_items: "{{ ombt_confs[agent_type][inventory_hostname] }}"
+  when: inventory_hostname in ombt_confs[agent_type]

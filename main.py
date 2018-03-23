@@ -13,3 +13,4 @@ if __name__ == "__main__":
 
     for cmd in sys.argv[1:]:
         getattr(tasks, cmd)()
+

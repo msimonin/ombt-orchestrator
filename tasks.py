@@ -33,6 +33,73 @@ tc = {
     "default_rate": "1gbit",
 }
 
+def shard_value(value, shards):
+    """Shard a value in multiple values.
+
+    >>> shard_value(10, 2)
+    [5, 5]
+    >>> shard_value(10, 3)
+    [4, 3, 3]
+    >>> shard_value(5, 10)
+    [1, 1, 1, 1, 1]
+
+    :param value: The value to shard
+    :param shards: The number of shards
+    """
+    q = [value // shards] * shards
+    for i in range(value % shards):
+        q[i] = q[i] + 1
+    return [qq for qq in q if qq > 0 ]
+
+
+def shard_list(l, shards):
+    """Shard a list in multiple sub-list.
+
+    >>> shard_list([1, 2, 3, 4], 2)
+    [[1, 3], [2, 4]]
+    >>> shard_list([1, 2, 3, 4], 3)
+    [[1, 4], [2], [3]]
+    >>> shard_list([1], 3)
+    [[1]]
+
+    :param l: The list to shard
+    :param shards: The number of shards
+    """
+    s_list = [l[i::shards] for i in range(shards) if i < len(l)]
+    return s_list
+
+
+def merge_ombt_confs(ombt_confs, ombt_conf):
+    """Merge an ombt_conf (of one shard) to the global ombt_confs (of all shards).
+
+    >>> ombt_confs = {'rpc-client': {'machine01': [1]}}
+    >>> ombt_conf = {'rpc-client': {'machine01': [2]}}
+    >>> merge_ombt_confs(ombt_confs, ombt_conf)
+    {'rpc-client': {'machine01': [1, 2]}}
+
+    >>> ombt_confs = {}
+    >>> ombt_conf = {'rpc-client': {'machine01': [2]}}
+    >>> merge_ombt_confs(ombt_confs, ombt_conf)
+    {'rpc-client': {'machine01': [2]}}
+
+    >>> import pprint
+    >>> ombt_confs = {'rpc-client': {'machine01': [1]}}
+    >>> ombt_conf = {'rpc-client': {'machine02': [2]}}
+    >>> pprint.pprint(merge_ombt_confs(ombt_confs, ombt_conf))
+    {'rpc-client': {'machine01': [1], 'machine02': [2]}}
+    """
+    for agent_type, machines in ombt_conf.items():
+        if not agent_type in ombt_confs:
+            ombt_confs.update({agent_type: machines})
+            continue
+        confs = ombt_confs[agent_type]
+        for machine, conf in machines.items():
+            if not machine in confs:
+                confs.update({machine: conf})
+                continue
+            confs[machine].extend(conf)
+    return ombt_confs
+
 
 def get_topics(number):
     """Create a list of topic names.
@@ -373,39 +440,95 @@ def prepare(driver=DRIVER, env=None, **kwargs):
 
 @enostask()
 def test_case_1(**kwargs):
-    kwargs['topics'] = get_topics(1)
-    test_case(**kwargs)
+    # Sharding
+    # Here it means we distribute the clients and servers
+    # accross the different availbale shards
+    env = kwargs["env"]
+    shards = len(env["control_bus_conf"])
+    ombt_confs = {}
+    s_clients = shard_value(kwargs["nbr_clients"], shards)
+    s_servers= shard_value(kwargs["nbr_servers"], shards)
+    for shard_index, s_client, s_server in zip(range(shards), s_clients, s_servers):
+        kwargs["nbr_clients"] = s_client
+        kwargs["nbr_servers"] = s_server
+        ombt_conf = generate_shard_conf(shard_index, **kwargs)
+        merge_ombt_confs(ombt_confs, ombt_conf)
+    test_case(ombt_confs, **kwargs)
 
 
 @enostask()
 def test_case_2(**kwargs):
+
     if 'topics' not in kwargs:
         nbr_topics = kwargs['nbr_topics']
-        kwargs['topics'] = get_topics(nbr_topics)
-        kwargs['nbr_clients'] = nbr_topics
-        kwargs['nbr_servers'] = nbr_topics
-    test_case(**kwargs)
+        topics = get_topics(nbr_topics)
+    else:
+        topics = kwargs["topics"]
+
+    # Sharding
+    # Here it means we distribute the topics
+    # accross the different available shards
+    env = kwargs["env"]
+    shards = len(env["control_bus_conf"])
+    s_topics = shard_list(topics, shards)
+    ombt_confs = {}
+    for shard_index, s_topic in zip(range(shards), s_topics):
+        kwargs['nbr_clients'] = len(s_topic)
+        kwargs['nbr_servers'] = len(s_topic)
+        kwargs['topics'] = s_topic
+        ombt_conf = generate_shard_conf(shard_index, **kwargs)
+        merge_ombt_confs(ombt_confs, ombt_conf)
+    test_case(ombt_confs, **kwargs)
 
 
 @enostask()
 def test_case_3(**kwargs):
     kwargs['topics'] = get_topics(1)
-    kwargs['call_type'] = 'rpc_cast'
-    test_case(**kwargs)
+    kwargs['call_type'] = 'rpc-fanout'
+
+    # Sharding
+    # We need to replicate the client on every controller
+    env = kwargs["env"]
+    shards = len(env["control_bus_conf"])
+    s_servers= shard_value(kwargs["nbr_servers"], shards)
+    ombt_confs = {}
+    for shard_index, s_server in zip(range(shards), s_servers):
+        kwargs["nbr_clients"] = 1
+        kwargs["nbr_servers"] = s_server
+        ombt_conf = generate_shard_conf(shard_index, **kwargs)
+        merge_ombt_confs(ombt_confs, ombt_conf)
+    test_case(ombt_confs, **kwargs)
 
 
 @enostask()
 def test_case_4(**kwargs):
-    kwargs['call_type'] = 'rpc_cast'
+    kwargs['call_type'] = 'rpc-cast'
     if 'topics' not in kwargs:
         nbr_topics = kwargs['nbr_topics']
-        kwargs['topics'] = get_topics(nbr_topics)
-        kwargs['nbr_clients'] = nbr_topics * kwargs['nbr_clients']
-        kwargs['nbr_servers'] = nbr_topics * kwargs['nbr_servers']
-    test_case(**kwargs)
+        topics = get_topics(nbr_topics)
+    else:
+        topics = kwargs["topics"]
+
+    # Sharding
+    # We shard based on the topics.
+    # So that a broadcast domains will belong to a single controller
+    env = kwargs["env"]
+    shards = len(env["control_bus_conf"])
+    nbr_clients = kwargs["nbr_clients"]
+    nbr_servers = kwargs["nbr_servers"]
+    s_topics = shard_list(topics, shards)
+    ombt_confs = {}
+    for shard_index, s_topic in zip(range(shards), s_topics):
+        kwargs['nbr_clients'] = nbr_clients * len(s_topic)
+        kwargs['nbr_servers'] = nbr_servers * len(s_topic)
+        kwargs['topics'] = s_topic
+        ombt_conf = generate_shard_conf(shard_index, **kwargs)
+        merge_ombt_confs(ombt_confs, ombt_conf)
+    test_case(ombt_confs, **kwargs)
 
 
-def test_case(
+def generate_shard_conf(
+        shard_index,
         nbr_clients=NBR_CLIENTS,
         nbr_servers=NBR_SERVERS,
         topics=TOPICS,
@@ -415,17 +538,11 @@ def test_case(
         timeout=TIMEOUT,
         length=LENGTH,
         executor=EXECUTOR,
-        version=VERSION,
-        backup_dir=BACKUP_DIR,
         iteration_id=None,
         env=None, **kwargs):
-    iteration_id = iteration_id or uuid.uuid4()
-    backup_dir = get_backup_directory(backup_dir)
-    extra_vars = {
-        "backup_dir": backup_dir,
-        "ombt_version": version,
-    }
+    """Generates the configuration of the agents of 1 shard (for 1 controller)."""
 
+    iteration_id = iteration_id or uuid.uuid4()
     bus_conf = env["bus_conf"]
     machine_client = env["roles"]["bus"]
     if "bus-client" in env["roles"]:
@@ -464,7 +581,7 @@ def test_case(
         },
         {
             "agent_type": "controller",
-            "number": len(env["roles"]["control-bus"]),
+            "number": 1,
             "machines": env["roles"]["ombt-control"],
             "bus_agents": bus_conf,
             "klass": OmbtController,
@@ -491,27 +608,26 @@ def test_case(
     #   }
     #   ...
     # }
+    control_bus_conf = [env["control_bus_conf"][shard_index]]
     ombt_confs = {}
-    # serialized version of the above
-    # for Ansible
-    ansible_ombt_confs = {}
-    control_bus_conf = env["control_bus_conf"]
     for agent_desc in descs:
         agent_type = agent_desc["agent_type"]
         machines = agent_desc["machines"]
-        # make sure all the machines appears in the ombt_confs
-        for machine in machines:
-            ombt_confs.setdefault(machine.alias, [])
 
+        ombt_confs.setdefault(agent_type, {})
         for agent_index in range(agent_desc["number"]):
+            # Taking into account a shard index has several benefit:
+            # first the distribution accross nodes or bus agent is more balanced
+            # -> the first agents of to distinct shard doesn't land on the same node
+            # second this provide some unicity for the agent_id
+            idx = agent_index + shard_index
             # choose a topic
-            topic = topics[agent_index % len(topics)]
+            topic = topics[idx % len(topics)]
             # choose a machine
-            machine = machines[agent_index % len(machines)].alias
+            machine = machines[idx % len(machines)].alias
             # choose a bus agent
-            # bus_agent = bus_conf[agent_index % len(bus_conf)]
-            bus_agent = agent_desc["bus_agents"][agent_index % len(agent_desc["bus_agents"])]
-            agent_id = "%s-%s-%s-%s" % (agent_type, agent_index, topic, iteration_id)
+            bus_agent = agent_desc["bus_agents"][idx % len(agent_desc["bus_agents"])]
+            agent_id = "%s-%s-%s-%s-%s" % (agent_type, agent_index, topic, iteration_id, shard_index)
             control_agent = control_bus_conf[agent_index % len(control_bus_conf)]
             kwargs = agent_desc["kwargs"]
             kwargs.update({"agent_id": agent_id,
@@ -520,15 +636,32 @@ def test_case(
                            "topic": topic,
                            "control_agents": [control_agent]})
             agent_conf = agent_desc["klass"](**kwargs)
-            ombt_confs.setdefault(agent_type, {})
-            ansible_ombt_confs.setdefault(agent_type, {})
             ombt_confs[agent_type].setdefault(machine, []).append(agent_conf)
-            ansible_ombt_confs[agent_type].setdefault(machine, []).append(agent_conf.to_dict())
+    return ombt_confs
 
-    extra_vars.update({'ombt_confs': ansible_ombt_confs})
+
+def test_case(ombt_confs,
+              version=VERSION,
+              backup_dir=BACKUP_DIR,
+              env=None,
+              **kwargs):
+
+    def serialize_ombt_confs(ombt_confs):
+        ansible_ombt_confs = {}
+        for agent_type, machines in ombt_confs.items():
+            ansible_ombt_confs.setdefault(agent_type, {})
+            for machine, confs in machines.items():
+                ansible_ombt_confs[agent_type].update({machine: [c.to_dict() for c in confs]})
+        return ansible_ombt_confs
+
+    backup_dir = get_backup_directory(backup_dir)
+    extra_vars = {
+        "backup_dir": backup_dir,
+        # NOTE(msimonin): This could mobe in each conf
+        "ombt_version": version
+    }
+    extra_vars.update({'ombt_confs': serialize_ombt_confs(ombt_confs)})
     run_ansible(["ansible/test_case_1.yml"], env["inventory"], extra_vars=extra_vars)
-    # save the conf
-    env["ombt_confs"] = ombt_confs
 
 
 @enostask()
