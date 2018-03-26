@@ -28,13 +28,13 @@ drivers:
     topology: complete_graph
     args: [4]
     qdr_image: msimonin/qdrouterd-collectd
-    qdr_version: 22400df
+    qdr_version: 1.0.1
   router:
     type: qdr
     topology: complete_graph
     args: [1]
     qdr_image: msimonin/qdrouterd-collectd
-    qdr_version: 22400df
+    qdr_version: 1.0.1
 registry:
   type: internal
 g5k:
