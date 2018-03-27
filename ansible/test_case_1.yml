@@ -4,47 +4,54 @@
   tasks:
   - setup:
 
-- name: Install servers
+- name: Install server(s)
   hosts: ombt-server
   roles:
     - ombt
   vars:
-    - enos_action: deploy
+    enos_action: deploy
+    agent_type: rpc-server
 
-- name: Install clients
+- name: Install client(s)
   hosts: ombt-client
   roles:
     - ombt
   vars:
-    - enos_action: deploy
+    enos_action: deploy
+    agent_type: rpc-client
 
-- name: Install controller
+- name: Install controller(s)
   hosts: ombt-control
   roles:
     - ombt
   vars:
-    - enos_action: deploy
+    enos_action: deploy
+    agent_type: controller
 
-- name: Backup controller
+- name: Backup controller(s)
   hosts: ombt-control
   roles:
     - ombt
   vars:
-    - enos_action: backup
+    enos_action: backup
+    agent_type: controller
 
-- name: Backup clients
+
+- name: Backup client(s)
   hosts: ombt-client
   roles:
     - ombt
   vars:
     enos_action: backup
+    agent_type: rpc-client
 
-- name: Backup servers
+- name: Backup server(s)
   hosts: ombt-server
   roles:
     - ombt
   vars:
     enos_action: backup
+    agent_type: rpc-server
 
 - name: Backup influxdb
   hosts: influxdb

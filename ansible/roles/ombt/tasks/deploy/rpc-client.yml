@@ -1,0 +1,11 @@
+---
+- name: Start ombt client(s)
+  docker_container:
+    image: "{{ ombt_version }}"
+    command: "{{ item.command }}"
+    name: "{{ item.name }}"
+    detach: "{{ item.detach }}"
+    network_mode: host
+    state: started
+  with_items: "{{ ombt_confs[agent_type][inventory_hostname] }}"
+  when: inventory_hostname in ombt_confs[agent_type]
