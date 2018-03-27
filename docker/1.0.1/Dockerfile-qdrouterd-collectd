@@ -1,14 +1,14 @@
 # qdrouterd and his collectd friend are packaged together
 # We use this base image which provide an init script allowing
 # several daemon to be started
-FROM msimonin/qdrouterd:master
+FROM msimonin/qdrouterd:1.0.1
 
 MAINTAINER "matthieu.simonin@inria.fr"
 
 # Install collectd
 RUN apt update
 RUN apt install -y collectd git
-RUN git clone --depth 1 https://github.com/ajssmith/collectd-qdrouterd /opt/collectd-qdrouterd
+RUN git clone -b fix-instances https://github.com/msimonin/collectd-qdrouterd /opt/collectd-qdrouterd
 
 WORKDIR /opt/collectd-qdrouterd
 RUN cat config/types.db.custom >> /usr/share/collectd/types.db

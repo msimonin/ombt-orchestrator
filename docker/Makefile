@@ -1,6 +1,6 @@
-VERSION=1.0.0
+VERSION=1.0.1
 FLAGS=--no-cache
-FLAGS=
+#FLAGS=
 
 all: $(VERSION)-qdr $(VERSION)-qdrc $(VERSION)-qdrg
 
