@@ -493,7 +493,7 @@ def test_case_3(**kwargs):
     s_servers= shard_value(kwargs["nbr_servers"], shards)
     ombt_confs = {}
     for shard_index, s_server in zip(range(shards), s_servers):
-        kwargs["nbr_clients"] = 1
+        # kwargs["nbr_clients"] = 1
         kwargs["nbr_servers"] = s_server
         ombt_conf = generate_shard_conf(shard_index, **kwargs)
         merge_ombt_confs(ombt_confs, ombt_conf)
@@ -652,7 +652,7 @@ def test_case(ombt_confs,
             ansible_ombt_confs.setdefault(agent_type, {})
             for machine, confs in machines.items():
                 ansible_ombt_confs[agent_type].update({machine: [c.to_dict() for c in confs]})
-
+        return ansible_ombt_confs
 
     backup_dir = get_backup_directory(backup_dir)
     extra_vars = {
