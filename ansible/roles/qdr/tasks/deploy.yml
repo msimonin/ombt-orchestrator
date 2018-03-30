@@ -43,6 +43,7 @@
       - "/etc/qpid-generator/collectd-qdrouterd-{{ item.router_id }}.conf:/etc/collectd/collectd.conf.d/collectd-qdrouterd.conf"
       - "/etc/qpid-generator/collectd-{{ item.router_id }}.conf:/etc/collectd/collectd.conf"
       - "/etc/qpid-generator/collectd-influxdb.conf:/etc/collectd/collectd.conf.d/collectd-influxdb.conf"
+      - "oo-qdr-{{ item.router_id }}-logs:/var/log"
     network_mode: host
     hostname: "{{ item.router_id }}"
     state: started

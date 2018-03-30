@@ -1,7 +1,11 @@
 ---
-- name: Destroying rabbitmq container
+- name: Destroying rabbitmq-control container
   docker_container:
     name: "rabbitmq-control"
     state: absent
     force_kill: yes
 
+- name: Destroying associating volume
+  docker_volume:
+    name: oo-rabbitmq-control-logs
+    state: absent

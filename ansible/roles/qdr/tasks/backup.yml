@@ -1,1 +1,27 @@
 ---
+- name: Removing previously copied logs
+  file:
+    path: "/tmp/oo-{{ item.router_id }}-logs"
+    state: absent
+  with_items: "{{ bus_conf }}"
+  when: item.machine== inventory_hostname
+
+- name: Copying router logs to /tmp
+  command: "cp -r /var/lib/docker/volumes/oo-qdr-{{ item.router_id }}-logs /tmp/oo-{{ item.router_id }}-logs"
+  with_items: "{{ bus_conf }}"
+  when: item.machine== inventory_hostname
+
+- name: Archiving the router logs
+  archive:
+    path: "/tmp/oo-{{ item.router_id }}-logs"
+    dest: "/{{ inventory_hostname }}_oo-{{ item.router_id }}-logs.tar.gz"
+  with_items: "{{ bus_conf }}"
+  when: item.machine== inventory_hostname
+
+- name: Fetching the router logs
+  fetch:
+    src: "/{{ inventory_hostname }}_oo-{{ item.router_id }}-logs.tar.gz"
+    dest: "{{ backup_dir }}/{{ inventory_hostname }}_oo-{{ item.router_id }}-logs.tar.gz"
+    flat: yes
+  with_items: "{{ bus_conf }}"
+  when: item.machine== inventory_hostname

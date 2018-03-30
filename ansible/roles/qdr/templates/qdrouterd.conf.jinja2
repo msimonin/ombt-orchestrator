@@ -30,6 +30,12 @@ connector {
 }
 {% endfor %}
 
+log {
+    module: DEFAULT
+    enable: info+
+    timestamp: true
+}
+
 address {
   prefix: openstack.org/om/rpc/multicast
   distribution: multicast

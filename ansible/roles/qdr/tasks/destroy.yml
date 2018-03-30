@@ -1,5 +1,5 @@
 ---
-- name: Start qdrouterd(s)
+- name: Destroy qdrouterd(s)
   docker_container:
     name: "{{ item.router_id }}"
     state: absent
@@ -7,10 +7,14 @@
   with_items: "{{ bus_conf }}"
   when: item.machine == inventory_hostname
 
-#
-# Start the gui
-#
-- name: Start the web gui
+- name: Destroy associated volumes
+  docker_volume:
+    name: "oo-qdr-{{ item.router_id }}-logs"
+    state: absent
+  with_items: "{{ bus_conf }}"
+  when: item.machine == inventory_hostname
+
+- name: Destroy the web gui
   docker_container:
     image: msimonin/qpid-dispatch-gui
     name: qpid-dispatch-gui
@@ -18,10 +22,7 @@
     force_kill: yes
   when: inventory_hostname == groups['bus'][0]
 
-#
-# Websockify AMQP listener
-#
-- name: Websockify AMQP listener
+- name: Destroy Websockify AMQP listener
   docker_container:
     name: websockify
     state: absent
