@@ -658,7 +658,9 @@ def test_case(ombt_confs,
     extra_vars = {
         "backup_dir": backup_dir,
         # NOTE(msimonin): This could mobe in each conf
-        "ombt_version": version
+        "ombt_version": version,
+        "broker": env["broker"],
+        "bus_conf": [o.to_dict() for o in env["bus_conf"]]
     }
     extra_vars.update({'ombt_confs': serialize_ombt_confs(ombt_confs)})
     run_ansible(["ansible/test_case_1.yml"], env["inventory"], extra_vars=extra_vars)
