@@ -5,3 +5,7 @@
     state: absent
     force_kill: yes
 
+- name: Destroying associating volume
+  docker_volume:
+    name: oo-rabbitmq-logs
+    state: absent

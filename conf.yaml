@@ -99,7 +99,6 @@ vagrant:
         - bus
         - telegraf
         - chrony
-        - control-bus
         flavor: tiny
         number: 1
         networks:

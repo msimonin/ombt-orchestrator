@@ -1,1 +1,19 @@
 ---
+- name: Removing previously copied logs
+  file:
+    path: /tmp/oo-rabbitmq-logs
+    state: absent
+
+- name: Copying rabbitmq logs to /tmp
+  command: cp -r /var/lib/docker/volumes/oo-rabbitmq-logs /tmp/oo-rabbitmq-logs
+
+- name: Archiving the rabbitmq logs
+  archive:
+    path: /tmp/oo-rabbitmq-logs
+    dest: "/{{ inventory_hostname }}_oo-rabbitmq-logs.tar.gz"
+
+- name: Fetching rabbitmq-control logs
+  fetch:
+    src: "/{{ inventory_hostname }}_oo-rabbitmq-logs.tar.gz"
+    dest: "{{ backup_dir }}/{{inventory_hostname}}_oo-rabbitmq-logs.tar.gz"
+    flat: yes

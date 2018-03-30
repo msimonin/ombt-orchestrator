@@ -652,7 +652,7 @@ def test_case(ombt_confs,
             ansible_ombt_confs.setdefault(agent_type, {})
             for machine, confs in machines.items():
                 ansible_ombt_confs[agent_type].update({machine: [c.to_dict() for c in confs]})
-        return ansible_ombt_confs
+
 
     backup_dir = get_backup_directory(backup_dir)
     extra_vars = {
@@ -683,7 +683,11 @@ def backup(backup_dir=BACKUP_DIR, env=None, **kwargs):
     backup_dir = get_backup_directory(backup_dir)
     extra_vars = {
         "enos_action": "backup",
-        "backup_dir": backup_dir
+        "backup_dir": backup_dir,
+        # NOTE(msimonin): this broker variable should be renamed
+        # This corresponds to driver.type, or maybe embed this in the bus conf
+        "broker": env["broker"],
+        "bus_conf": [o.to_dict() for o in env.get("bus_conf")]
     }
 
     run_ansible(["ansible/site.yml"], env["inventory"], extra_vars=extra_vars)
@@ -694,6 +698,8 @@ def destroy(env=None, **kwargs):
     # Call destroy on each component
     extra_vars = {
         "enos_action": "destroy",
+        # NOTE(msimonin): this broker variable should be renamed
+        # This corresponds to driver.type or maybe embed this in the bus_conf
         "broker": env["broker"],
         "bus_conf": [o.to_dict() for o in env.get("bus_conf")]
     }

@@ -1,5 +1,5 @@
 ---
-- name: Install and start docker image "rabbitmq"
+- name: Install and start docker image rabbitmq
   docker_container:
     name: rabbitmq
     image: rabbitmq:3-management
@@ -7,6 +7,10 @@
       - "{{ item.port}}:5672"
       - "{{ item.management_port }}:15672"
     state: started
+    env:
+      RABBITMQ_LOGS: rabbitmq.log
+    volumes:
+      oo-rabbitmq-logs:/var/log/rabbitmq
   with_items: "{{ bus_conf }}"
   when: item.machine == inventory_hostname
 
