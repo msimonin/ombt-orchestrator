@@ -122,6 +122,8 @@ TEST_CASES = {
     # TODO complete fixp and zip values
     'test_case_3': {'defn': t.test_case_3,
                     'filtr': filter_3,
+                    'fixp': fix_1,
+                    'zip': ['nbr_servers', 'nbr_clients', 'nbr_calls', 'pause'] ,
                     'key': 'nbr_clients'},
     # TODO complete fixp and zip values
     'test_case_4': {'defn': t.test_case_4,
