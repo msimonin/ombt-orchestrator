@@ -28,7 +28,7 @@ def filter_2(parameters):
 
 
 def filter_3(parameters):
-    return filter_params(parameters, condition=lambda x: x['nbr_servers'] >= x['nbr_clients'])
+    return filter_params(parameters, key='nbr_servers')
 
 
 def filter_params(parameters, key='nbr_clients', condition=lambda unused: True):
@@ -83,6 +83,8 @@ def sort_parameters(parameters, key):
 
 
 def get_current_values(params, current, key):
+    """Infers the previous value for key in params regarding the current value.
+    """
     plist = params.get(key)
     state = current.get(key)
     index = plist.index(state)
@@ -108,6 +110,16 @@ def fix_2(parameters, current_parameters):
     current_parameters.update({'nbr_servers': len(current_topics)})
 
 
+def fix_3(parameters, current_parameters):
+    previous_servers, current_servers = get_current_values(parameters, current_parameters, 'nbr_servers')
+    if previous_servers:
+        nbr_clients = 0
+    else:
+        nbr_clients = 1
+    current_parameters.update({'topics': ['topic-0']})
+    current_parameters.update({'nbr_clients': nbr_clients})
+    current_parameters.update({'nbr_servers': current_servers - previous_servers})
+
 TEST_CASES = {
     'test_case_1': {'defn': t.test_case_1,
                     'filtr': filter_1,
@@ -119,10 +131,11 @@ TEST_CASES = {
                     'fixp': fix_2,
                     'key': 'nbr_topics',
                     'zip': ['nbr_topics', 'nbr_calls', 'pause']},
-    # TODO complete fixp and zip values
     'test_case_3': {'defn': t.test_case_3,
                     'filtr': filter_3,
-                    'key': 'nbr_clients'},
+                    'fixp': fix_3,
+                    'zip': ['nbr_servers', 'nbr_calls', 'pause'] ,
+                    'key': 'nbr_servers'},
     # TODO complete fixp and zip values
     'test_case_4': {'defn': t.test_case_4,
                     'filtr': filter_2,  # same as tc2

@@ -20,6 +20,17 @@ campaign:
     length: [1024]
     executor: ["threading"]
     driver: ["broker", "router-4"]
+  test_case_3:
+    nbr_clients: [1, 1]
+    nbr_servers: [2, 4]
+    call_type: ["rpc-call"]
+    nbr_calls: [100]
+    pause: [0.1]
+    timeout: [8000]
+    version: ["msimonin/ombt:singleton"]
+    length: [1024]
+    executor: ["threading"]
+    driver: ["broker"]
 drivers:
   broker:
     type: rabbitmq
