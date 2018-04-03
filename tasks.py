@@ -1,37 +1,20 @@
 import os
-from abc import ABCMeta, abstractmethod
+import sys
 import uuid
 
-import yaml
+from abc import ABCMeta, abstractmethod
+from os import path
+
 from enoslib.api import run_ansible, generate_inventory, emulate_network, validate_network
+from enoslib.errors import EnosError
 from enoslib.infra.enos_chameleonkvm.provider import Chameleonkvm
 from enoslib.infra.enos_g5k.provider import G5k
 from enoslib.infra.enos_vagrant.provider import Enos_vagrant
 from enoslib.task import enostask
 
+from cli import DRIVER
 from qpid_dispatchgen import get_conf, generate, round_robin
 
-# DEFAULT PARAMETERS
-DRIVER = "rabbitmq"
-NBR_CLIENTS = 1
-NBR_SERVERS = 1
-NBR_TOPICS = 1
-TOPICS = ["topic-0"]
-CALL_TYPE = "rpc-call"
-NBR_CALLS = 100
-PAUSE = 0.0
-TIMEOUT = 60
-#VERSION = "beyondtheclouds/ombt:latest"
-VERSION = "msimonin/ombt:singleton"
-BACKUP_DIR = "backup"
-LENGTH = 1024
-EXECUTOR = "threading"
-
-tc = {
-    "enable": True,
-    "default_delay": "20ms",
-    "default_rate": "1gbit",
-}
 if sys.version_info[0] < 3:
     import pathlib2 as pathlib
 
@@ -52,7 +35,7 @@ def shard_value(value, shards):
     q = [value // shards] * shards
     for i in range(value % shards):
         q[i] = q[i] + 1
-    return [qq for qq in q if qq > 0 ]
+    return [qq for qq in q if qq > 0]
 
 
 def shard_list(l, shards):
@@ -92,12 +75,12 @@ def merge_ombt_confs(ombt_confs, ombt_conf):
     {'rpc-client': {'machine01': [1], 'machine02': [2]}}
     """
     for agent_type, machines in ombt_conf.items():
-        if not agent_type in ombt_confs:
+        if agent_type not in ombt_confs:
             ombt_confs.update({agent_type: machines})
             continue
         confs = ombt_confs[agent_type]
         for machine, conf in machines.items():
-            if not machine in confs:
+            if machine not in confs:
                 confs.update({machine: conf})
                 continue
             confs[machine].extend(conf)
@@ -217,7 +200,7 @@ class OmbtAgent(object):
         # where to log inside the container
         self.docker_log = "/home/ombt/ombt-data/agent.log"
         # where to log outside the container (mount)
-        self.log = os.path.join("/tmp/ombt-data", "%s.log" % self.agent_id)
+        self.log = path.join("/tmp/ombt-data", "%s.log" % self.agent_id)
         # the command to run
         self.command = self.get_command()
 
@@ -249,7 +232,7 @@ class OmbtAgent(object):
         """Build the command for the ombt agent.
         """
         command = []
-        command.append("--debug")
+        # command.append("--debug")
         command.append("--unique")
         command.append("--timeout %s " % self.timeout)
         command.append("--topic %s " % self.topic)
@@ -259,6 +242,7 @@ class OmbtAgent(object):
         # if self.verbose:
         #    command.append("--output %s " % self.docker_log)
         return command
+
 
 class OmbtClient(OmbtAgent):
 
@@ -309,26 +293,15 @@ class OmbtController(OmbtAgent):
         return " ".join(command)
 
 
-def load_config(path):
-    """
-    Read configuration from a file in YAML format.
-    :param path: Path of the configuration file.
-    :return:
-    """
-    with open(path) as f:
-        configuration = yaml.safe_load(f)
-    return configuration
-
-
 def get_backup_directory(backup_dir):
     # Create the backup dir for an experiment
     # NOTE(msimonin): We don't need to identify the backup dir we could use a dedicated env name for that
     cwd = os.getcwd()
     # 'current' directory is constant because it depends on enoslib implementation
-    current_directory = os.path.join(cwd, 'current')
-    backup_dir = os.path.join(current_directory, backup_dir)
-    # TODO remove sys call by python API
-    os.system("mkdir -p %s" % backup_dir)
+    current_directory = path.join(cwd, 'current')
+    backup_dir = path.join(current_directory, backup_dir)
+    pathlib.Path(backup_dir).mkdir(parents=True, exist_ok=True)
+    # os.system("mkdir -p %s" % backup_dir)
     return backup_dir
 
 
@@ -349,7 +322,7 @@ def chameleon(**kwargs):
     init_provider(Chameleonkvm, 'chameleon', **kwargs)
 
 
-def init_provider(provider, name, force=False, config=None, env=None, **kwargs):
+def init_provider(provider, name, force, config, env):
     instance = provider(config[name])
     roles, networks = instance.init(force_deploy=force)
     env["config"] = config
@@ -365,10 +338,11 @@ PROVIDERS = {
 
 
 @enostask()
-def inventory(env=None, **kwargs):
+def inventory(**kwargs):
+    env = kwargs["env"]
     roles = env["roles"]
     networks = env["networks"]
-    env["inventory"] = os.path.join(env["resultdir"], "hosts")
+    env["inventory"] = path.join(env["resultdir"], "hosts")
     generate_inventory(roles, networks, env["inventory"], check_networks=True)
 
 
@@ -401,12 +375,15 @@ def generate_bus_conf(config, machines):
 
 
 @enostask()
-def prepare(driver=DRIVER, env=None, **kwargs):
+def prepare(**kwargs):
+    env = kwargs["env"]
+    driver = kwargs["driver"]
     # Generate inventory
     config = env['config']['drivers'].get(driver, {'type': DRIVER})
     extra_vars = {
         "registry": env["config"]["registry"],
-        "broker": config["type"]}
+        "broker": config["type"]
+    }
 
     # Preparing the installation of the bus under evaluation. Need to pass
     # specific options. We generate a configuration dict that captures the
@@ -450,7 +427,7 @@ def test_case_1(**kwargs):
     shards = len(env["control_bus_conf"])
     ombt_confs = {}
     s_clients = shard_value(kwargs["nbr_clients"], shards)
-    s_servers= shard_value(kwargs["nbr_servers"], shards)
+    s_servers = shard_value(kwargs["nbr_servers"], shards)
     for shard_index, s_client, s_server in zip(range(shards), s_clients, s_servers):
         kwargs["nbr_clients"] = s_client
         kwargs["nbr_servers"] = s_server
@@ -493,7 +470,7 @@ def test_case_3(**kwargs):
     # We need to replicate the client on every controller
     env = kwargs["env"]
     shards = len(env["control_bus_conf"])
-    s_servers= shard_value(kwargs["nbr_servers"], shards)
+    s_servers = shard_value(kwargs["nbr_servers"], shards)
     ombt_confs = {}
     for shard_index, s_server in zip(range(shards), s_servers):
         # kwargs["nbr_clients"] = 1
@@ -530,19 +507,9 @@ def test_case_4(**kwargs):
     test_case(ombt_confs, **kwargs)
 
 
-def generate_shard_conf(
-        shard_index,
-        nbr_clients=NBR_CLIENTS,
-        nbr_servers=NBR_SERVERS,
-        topics=TOPICS,
-        call_type=CALL_TYPE,
-        nbr_calls=NBR_CALLS,
-        pause=PAUSE,
-        timeout=TIMEOUT,
-        length=LENGTH,
-        executor=EXECUTOR,
-        iteration_id=None,
-        env=None, **kwargs):
+def generate_shard_conf(shard_index, nbr_clients, nbr_servers, topics,
+                        call_type, nbr_calls, pause, timeout, length,
+                        executor, iteration_id, env):
     """Generates the configuration of the agents of 1 shard (for 1 controller)."""
 
     iteration_id = iteration_id or uuid.uuid4()
@@ -597,8 +564,8 @@ def generate_shard_conf(
             }
         }]
 
-    # build the specific variables for each client/server:
-    # ombt_conf = {
+    #  build the specific variables for each client/server:
+    #  ombt_conf = {
     #   "rpc-client": {
     #       "machine01": [confs],
     #        ...
@@ -610,7 +577,7 @@ def generate_shard_conf(
     #
     #   }
     #   ...
-    # }
+    #  }
     control_bus_conf = [env["control_bus_conf"][shard_index]]
     ombt_confs = {}
     for agent_desc in descs:
@@ -643,18 +610,16 @@ def generate_shard_conf(
     return ombt_confs
 
 
-def test_case(ombt_confs,
-              version=VERSION,
-              backup_dir=BACKUP_DIR,
-              env=None,
-              **kwargs):
+def test_case(ombt_confs, version, backup_dir, env):
 
-    def serialize_ombt_confs(ombt_confs):
+    def serialize_ombt_confs(_ombt_confs):
         ansible_ombt_confs = {}
-        for agent_type, machines in ombt_confs.items():
+        for agent_type, machines in _ombt_confs.items():
             ansible_ombt_confs.setdefault(agent_type, {})
+
             for machine, confs in machines.items():
                 ansible_ombt_confs[agent_type].update({machine: [c.to_dict() for c in confs]})
+
         return ansible_ombt_confs
 
     backup_dir = get_backup_directory(backup_dir)
@@ -665,26 +630,40 @@ def test_case(ombt_confs,
         "broker": env["broker"],
         "bus_conf": [o.to_dict() for o in env["bus_conf"]]
     }
+
     extra_vars.update({'ombt_confs': serialize_ombt_confs(ombt_confs)})
     run_ansible(["ansible/test_case_1.yml"], env["inventory"], extra_vars=extra_vars)
 
 
 @enostask()
-def emulate(env=None, **kwargs):
-    inventory = env["inventory"]
+def emulate(**kwargs):
+    env = kwargs["env"]
+    constraints = kwargs["constraints"]
+    network_constraints = env['config']['traffic'].get(constraints)
     roles = env["roles"]
-    emulate_network(roles, inventory, tc)
+    _inventory = env["inventory"]
+    emulate_network(roles, _inventory, network_constraints)
 
 
 @enostask()
-def validate(env=None, **kwargs):
-    inventory = env["inventory"]
+def validate(**kwargs):
+    env = kwargs["env"]
+    _inventory = env["inventory"]
     roles = env["roles"]
-    validate_network(roles, inventory)
+    validate_network(roles, _inventory)
 
 
 @enostask()
-def backup(backup_dir=BACKUP_DIR, env=None, **kwargs):
+def reset(**kwargs):
+    env = kwargs["env"]
+    # TODO expose this feature in enostask
+    raise EnosError()
+
+
+@enostask()
+def backup(**kwargs):
+    env = kwargs["env"]
+    backup_dir = kwargs["backup_dir"]
     backup_dir = get_backup_directory(backup_dir)
     extra_vars = {
         "enos_action": "backup",
@@ -699,7 +678,8 @@ def backup(backup_dir=BACKUP_DIR, env=None, **kwargs):
 
 
 @enostask()
-def destroy(env=None, **kwargs):
+def destroy(**kwargs):
+    env = kwargs["env"]
     # Call destroy on each component
     extra_vars = {
         "enos_action": "destroy",
