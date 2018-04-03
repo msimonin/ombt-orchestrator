@@ -32,6 +32,9 @@ tc = {
     "default_delay": "20ms",
     "default_rate": "1gbit",
 }
+if sys.version_info[0] < 3:
+    import pathlib2 as pathlib
+
 
 def shard_value(value, shards):
     """Shard a value in multiple values.
