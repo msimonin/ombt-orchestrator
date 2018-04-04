@@ -35,7 +35,7 @@ TIMEOUT = 60
 VERSION = "msimonin/ombt:singleton"
 # default backup directory name
 BACKUP_DIR = "backup"
-# default lenght of messages
+# default length of messages
 LENGTH = 1024
 # default type of ombt executor
 EXECUTOR = "threading"
@@ -64,6 +64,8 @@ def cli():
 @click.option("--driver",
               default=DRIVER,
               help="communication bus driver")
+@click.option("--constraints",
+              help="network constraints")
 @click.option("--force",
               is_flag=True,
               help="force redeployment")
@@ -72,14 +74,18 @@ def cli():
               help="alternative configuration file")
 @click.option("--env",
               help="alternative environment directory")
-def deploy(provider, driver, force, conf, env):
+def deploy(provider, driver, constraints, force, conf, env):
     config = load_config(conf)
     t.PROVIDERS[provider](force=force, config=config, env=env)
     t.inventory()
+    if constraints:
+        t.emulate(constraints=constraints, env=env)
     t.prepare(driver=driver, env=env)
 
 
 @cli.command(help="Claim resources on Grid'5000 (frontend).")
+@click.option("--constraints",
+              help="network constraints")
 @click.option("--force",
               is_flag=True,
               help="force redeployment")
@@ -88,12 +94,17 @@ def deploy(provider, driver, force, conf, env):
               help="alternative configuration file")
 @click.option("--env",
               help="alternative environment directory")
-def g5k(force, conf, env):
+def g5k(constraints, force, conf, env):
     config = load_config(conf)
     t.g5k(force=force, config=config, env=env)
+    if constraints:
+        t.inventory()
+        t.emulate(constraints=constraints, env=env)
 
 
 @cli.command(help="Claim resources on vagrant (localhost).")
+@click.option("--constraints",
+              help="network constraints")
 @click.option("--force",
               is_flag=True,
               help="force redeployment")
@@ -102,9 +113,12 @@ def g5k(force, conf, env):
               help="alternative configuration file")
 @click.option("--env",
               help="alternative environment directory")
-def vagrant(force, conf, env):
+def vagrant(constraints, force, conf, env):
     config = load_config(conf)
     t.vagrant(force=force, config=config, env=env)
+    if constraints:
+        t.inventory()
+        t.emulate(constraints=constraints, env=env)
 
 
 @cli.command(help="Generate the Ansible inventory [after g5k or vagrant].")
@@ -126,8 +140,10 @@ def prepare(driver, env):
 
 
 @cli.command(help="Destroy all the running containers (keeping deployed resources).")
-def destroy():
-    t.destroy()
+@click.option("--env",
+              help="alternative environment directory")
+def destroy(env):
+    t.destroy(env=env)
 
 
 @cli.command(help="Set network configuration constraints [after deploy, inventory or destroy]")
