@@ -193,6 +193,7 @@ def campaign(test, provider, force, conf, env):
             current_parameters.update({'backup_dir': generate_id(current_parameters)})
             t.prepare(driver=current_parameters['driver'], env=current_env_dir)
             TEST_CASES[test]['defn'](**current_parameters)
+            t.backup(backup_dir=current_parameters['backup_dir'], env=env_dir)
             sweeper.done(current_parameters)
             dump_parameters(current_env_dir, current_parameters)
         except (AttributeError, EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
@@ -306,6 +307,7 @@ def incremental_campaign(test, provider, force, pause, conf, env):
                 # fix number of clients and servers (or topics) to deploy
                 TEST_CASES[test]['fixp'](parameters, current_parameters)
                 TEST_CASES[test]['defn'](**current_parameters)
+                t.backup(backup_dir=current_parameters['backup_dir'], env=env_dir)
                 dump_parameters(env_dir, current_parameters)
                 time.sleep(pause)
             sweeper.done(current_group)

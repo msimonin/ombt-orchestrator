@@ -52,27 +52,3 @@
   vars:
     enos_action: backup
     agent_type: rpc-server
-
-- name: Backup influxdb
-  hosts: influxdb
-  roles:
-    - influxdb
-  vars:
-   - enos_action: backup
-
-- name: Backup buses
-  hosts: bus
-  roles:
-    - { role: rabbitmq,
-        when: broker == "rabbitmq" }
-    - { role: qdr,
-        when: broker == "qdr" }
-  vars:
-   - enos_action: backup
-
-- name: Backup buses
-  hosts: control-bus
-  roles:
-    - rabbitmq-control
-  vars:
-   - enos_action: backup
