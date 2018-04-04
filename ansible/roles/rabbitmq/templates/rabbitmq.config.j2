@@ -1,0 +1,26 @@
+[
+  {kernel, [
+    {inet_dist_listen_min, {{ item.port + 20000 }}},
+    {inet_dist_listen_max, {{ item.port + 20000 }}}
+  ]},
+  {rabbit, [
+    {tcp_listeners, [
+      {"{{ hostvars[inventory_hostname]['ansible_' + control_network].ipv4.address }}", {{ item.port }} }
+    ]},
+    {cluster_partition_handling, autoheal},
+    {cluster_nodes, [
+  {% for agent_id, host in item.cluster_nodes %}
+    '{{ agent_id }}@{{ hostvars[host]['ansible_hostname'] }}'
+      {%- if not loop.last -%},{%- endif %}
+  {% endfor %}
+    ]},
+    {loopback_users, []}
+  ]},
+  {rabbitmq_management, [
+    {listener, [
+      {ip, "{{ hostvars[inventory_hostname]['ansible_' + control_network].ipv4.address }}"},
+      {port, {{ item.management_port }} }
+    ]}
+  ]}
+].
+% EOF

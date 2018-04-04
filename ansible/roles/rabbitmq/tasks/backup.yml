@@ -1,19 +1,28 @@
 ---
 - name: Removing previously copied logs
   file:
-    path: /tmp/oo-rabbitmq-logs
+    path: "/tmp/oo-{{ item.agent_id }}-logs"
     state: absent
+  with_items: "{{ current_bus_conf }}"
+  when: item.machine == inventory_hostname
 
 - name: Copying rabbitmq logs to /tmp
-  command: cp -r /var/lib/docker/volumes/oo-rabbitmq-logs /tmp/oo-rabbitmq-logs
+  command: "cp -r /var/lib/docker/volumes/oo-{{ item.agent_id }}-logs /tmp/oo-{{ item.agent_id }}-logs"
+  with_items: "{{ current_bus_conf }}"
+  when: item.machine == inventory_hostname
 
 - name: Archiving the rabbitmq logs
   archive:
-    path: /tmp/oo-rabbitmq-logs
-    dest: "/{{ inventory_hostname }}_oo-rabbitmq-logs.tar.gz"
+    path: "/tmp/oo-{{ item.agent_id }}-logs"
+    dest: "/tmp/{{ inventory_hostname }}_oo-{{ item.agent_id }}-logs.tar.gz"
+  with_items: "{{ current_bus_conf }}"
+  when: item.machine == inventory_hostname
 
-- name: Fetching rabbitmq-control logs
+
+- name: Fetching rabbitmq logs
   fetch:
-    src: "/{{ inventory_hostname }}_oo-rabbitmq-logs.tar.gz"
-    dest: "{{ backup_dir }}/{{inventory_hostname}}_oo-rabbitmq-logs.tar.gz"
+    src: "/tmp/{{ inventory_hostname }}_oo-{{ item.agent_id }}-logs.tar.gz"
+    dest: "{{ backup_dir }}/{{inventory_hostname}}_oo-{{ item.agent_id }}-logs.tar.gz"
     flat: yes
+  with_items: "{{ current_bus_conf }}"
+  when: item.machine == inventory_hostname

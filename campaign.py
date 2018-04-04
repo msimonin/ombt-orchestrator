@@ -200,7 +200,7 @@ def campaign(test, provider, force, conf, env):
             print(error, file=sys.stderr)
             print(error.args, file=sys.stderr)
         finally:
-            t.destroy()
+           #t.destroy()
             current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
 
 
