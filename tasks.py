@@ -12,7 +12,7 @@ from enoslib.infra.enos_g5k.provider import G5k
 from enoslib.infra.enos_vagrant.provider import Enos_vagrant
 from enoslib.task import enostask
 
-from cli import DRIVER
+from cli import DRIVER, BACKUP_DIR
 from qpid_dispatchgen import get_conf, generate, round_robin
 
 if sys.version_info[0] < 3:
@@ -507,12 +507,11 @@ def test_case_4(**kwargs):
     test_case(ombt_confs, **kwargs)
 
 
-def generate_shard_conf(shard_index, nbr_clients, nbr_servers, topics,
-                        call_type, nbr_calls, pause, timeout, length,
-                        executor, iteration_id, env):
+def generate_shard_conf(shard_index, nbr_clients, nbr_servers, call_type,
+                        nbr_calls, pause, timeout, length, executor, env,
+                        topics=["topic-0"], iteration_id=uuid.uuid4(), **kwargs):
     """Generates the configuration of the agents of 1 shard (for 1 controller)."""
 
-    iteration_id = iteration_id or uuid.uuid4()
     bus_conf = env["bus_conf"]
     machine_client = env["roles"]["bus"]
     if "bus-client" in env["roles"]:
@@ -610,7 +609,7 @@ def generate_shard_conf(shard_index, nbr_clients, nbr_servers, topics,
     return ombt_confs
 
 
-def test_case(ombt_confs, version, backup_dir, env):
+def test_case(ombt_confs, version, env, backup_dir=BACKUP_DIR, **kwargs):
 
     def serialize_ombt_confs(_ombt_confs):
         ansible_ombt_confs = {}
@@ -625,7 +624,7 @@ def test_case(ombt_confs, version, backup_dir, env):
     backup_dir = get_backup_directory(backup_dir)
     extra_vars = {
         "backup_dir": backup_dir,
-        # NOTE(msimonin): This could mobe in each conf
+        # NOTE(msimonin): This could be moved in each conf
         "ombt_version": version,
         "broker": env["broker"],
         "bus_conf": [o.to_dict() for o in env["bus_conf"]]
