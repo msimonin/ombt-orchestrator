@@ -420,6 +420,9 @@ def prepare(**kwargs):
 
 @enostask()
 def test_case_1(**kwargs):
+    if "topics" not in kwargs:
+        kwargs["topics"] = get_topics(1)
+
     # Sharding
     # Here it means we distribute the clients and servers
     # accross the different availbale shards
@@ -433,18 +436,17 @@ def test_case_1(**kwargs):
         kwargs["nbr_servers"] = s_server
         ombt_conf = generate_shard_conf(shard_index, **kwargs)
         merge_ombt_confs(ombt_confs, ombt_conf)
+
     test_case(ombt_confs, **kwargs)
 
 
 @enostask()
 def test_case_2(**kwargs):
+    if "topics" not in kwargs:
+        nbr_topics = kwargs["nbr_topics"]
+        kwargs["topics"] = get_topics(nbr_topics)
 
-    if 'topics' not in kwargs:
-        nbr_topics = kwargs['nbr_topics']
-        topics = get_topics(nbr_topics)
-    else:
-        topics = kwargs["topics"]
-
+    topics = kwargs["topics"]
     # Sharding
     # Here it means we distribute the topics
     # accross the different available shards
@@ -458,14 +460,16 @@ def test_case_2(**kwargs):
         kwargs['topics'] = s_topic
         ombt_conf = generate_shard_conf(shard_index, **kwargs)
         merge_ombt_confs(ombt_confs, ombt_conf)
+
     test_case(ombt_confs, **kwargs)
 
 
 @enostask()
 def test_case_3(**kwargs):
-    kwargs['topics'] = get_topics(1)
-    kwargs['call_type'] = 'rpc-fanout'
+    if "topics" not in kwargs:
+        kwargs["topics"] = get_topics(1)
 
+    kwargs['call_type'] = 'rpc-fanout'
     # Sharding
     # We need to replicate the client on every controller
     env = kwargs["env"]
@@ -477,18 +481,18 @@ def test_case_3(**kwargs):
         kwargs["nbr_servers"] = s_server
         ombt_conf = generate_shard_conf(shard_index, **kwargs)
         merge_ombt_confs(ombt_confs, ombt_conf)
+
     test_case(ombt_confs, **kwargs)
 
 
 @enostask()
 def test_case_4(**kwargs):
-    kwargs['call_type'] = 'rpc-cast'
-    if 'topics' not in kwargs:
-        nbr_topics = kwargs['nbr_topics']
-        topics = get_topics(nbr_topics)
-    else:
-        topics = kwargs["topics"]
+    kwargs["call_type"] = "rpc-cast"
+    if "topics" not in kwargs:
+        nbr_topics = kwargs["nbr_topics"]
+        kwargs["topics"] = get_topics(nbr_topics)
 
+    topics = kwargs["topics"]
     # Sharding
     # We shard based on the topics.
     # So that a broadcast domains will belong to a single controller
@@ -504,12 +508,13 @@ def test_case_4(**kwargs):
         kwargs['topics'] = s_topic
         ombt_conf = generate_shard_conf(shard_index, **kwargs)
         merge_ombt_confs(ombt_confs, ombt_conf)
+
     test_case(ombt_confs, **kwargs)
 
 
 def generate_shard_conf(shard_index, nbr_clients, nbr_servers, call_type,
                         nbr_calls, pause, timeout, length, executor, env,
-                        topics=["topic-0"], iteration_id=uuid.uuid4(), **kwargs):
+                        topics, iteration_id=uuid.uuid4(), **kwargs):
     """Generates the configuration of the agents of 1 shard (for 1 controller)."""
 
     bus_conf = env["bus_conf"]
