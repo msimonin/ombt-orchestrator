@@ -19,14 +19,16 @@ if sys.version_info[0] < 3:
     import pathlib2 as pathlib
 
 
-def shard_value(value, shards):
+def shard_value(value, shards, include_zero=False):
     """Shard a value in multiple values.
 
     >>> shard_value(10, 2)
     [5, 5]
     >>> shard_value(10, 3)
     [4, 3, 3]
-    >>> shard_value(5, 10)
+    >>> shard_value(5, 10, include_zero=True)
+    [1, 1, 1, 1, 1, 0, 0, 0, 0, 0]
+    >>> shard_value(5, 10, include_zero=False)
     [1, 1, 1, 1, 1]
 
     :param value: The value to shard
@@ -35,23 +37,31 @@ def shard_value(value, shards):
     q = [value // shards] * shards
     for i in range(value % shards):
         q[i] = q[i] + 1
-    return [qq for qq in q if qq > 0]
+    if not include_zero:
+        q = [qq for qq in q if qq != 0]
+    return q
 
 
-def shard_list(l, shards):
+def shard_list(l, shards, include_empty=False):
     """Shard a list in multiple sub-list.
 
     >>> shard_list([1, 2, 3, 4], 2)
     [[1, 3], [2, 4]]
     >>> shard_list([1, 2, 3, 4], 3)
     [[1, 4], [2], [3]]
-    >>> shard_list([1], 3)
+    >>> shard_list([1], 3, include_empty=True)
+    [[1], [], []]
+    >>> shard_list([1], 3, include_empty=False)
     [[1]]
 
     :param l: The list to shard
     :param shards: The number of shards
     """
     s_list = [l[i::shards] for i in range(shards) if i < len(l)]
+    if include_empty:
+        # We add the missing pieces
+        empty = [[] for i in range(shards - len(s_list))]
+        s_list.extend(empty)
     return s_list
 
 
@@ -112,6 +122,14 @@ def get_topics(number):
     length = len(str(number)) if number % 10 else len(str(number)) - 1
     sequence = ('{number:0{width}}'.format(number=n, width=length) for n in range(number))
     return ['topic-{}'.format(e) for e in sequence]
+
+
+def generate_ansible_conf(key, bus_conf, configuration=None):
+    ansible_conf = {key: [b.to_dict() for b in bus_conf]}
+    # inject the bus configuration taken from the configuration
+    if configuration:
+        ansible_conf.update(configuration)
+    return ansible_conf
 
 
 class BusConf(object):
@@ -349,7 +367,7 @@ def inventory(**kwargs):
     generate_inventory(roles, networks, env["inventory"], check_networks=True)
 
 
-def generate_bus_conf(config, machines):
+def generate_bus_conf(config, role_machines, context=""):
     """Generate the bus configuration.
 
     Args:
@@ -359,12 +377,24 @@ def generate_bus_conf(config, machines):
     Returns:
         List of configurations to use for each machine.
     """
+    machines = [desc.alias for desc in role_machines]
     if config["type"] == "rabbitmq":
+        # To pack several rabbit agent on the same node we follow
+        # https://www.rabbitmq.com/clustering.html#single-machine
+        number = config.get("number", len(role_machines))
+        # Distributing the rabbitmq instances
         bus_conf = [{
-            "port": 5672,
-            "management_port": 15672,
-            "machine": machine
-        } for machine in machines]
+            "agent_id" : "rabbitmq-%s-%s" % (context, index),
+            "port": 5672 + index,
+            "management_port": 15672 + index,
+            "machine": machines[index % len(machines)],
+        } for index in range(number)]
+        # We inject the cluster nodes
+        cluster_nodes = []
+        if config["mode"] == "cluster":
+            cluster_nodes = [(b["agent_id"], b["machine"]) for b in bus_conf]
+        for b in bus_conf:
+            b["cluster_nodes"] = cluster_nodes
         # saving the conf object
         bus_conf = [RabbitMQConf(c) for c in bus_conf]
     elif config["type"] == "qdr":
@@ -392,30 +422,19 @@ def prepare(**kwargs):
     # specific options. We generate a configuration dict that captures the
     # minimal set of parameters of each agents of the bus. This configuration
     # dict is used in subsequent test* tasks to configure the ombt agents.
-    roles = env['roles']
+    bus_conf = generate_bus_conf(config, env["roles"]["bus"], context="bus")
+    env["bus_conf"] = bus_conf
+    ansible_bus_conf = generate_ansible_conf("bus_conf", bus_conf, config)
 
-    def generate_ansible_conf(configuration, role):
-        machines = [desc.alias for desc in roles[role]]
-        bus_conf = generate_bus_conf(configuration, machines)
-        # the key for the 'control-bus' role is 'control_bus'
-        key = '{}_conf'.format(role.replace('-', '_'))
-        env.update({key: bus_conf})
-        ansible_conf = {key: [b.to_dict() for b in bus_conf]}
-        # inject the bus configuration taken from the configuration
-        ansible_conf.update(configuration)
-        return ansible_conf
+    # NOTE(msimonin): still hardcoding the control_bus configuration for now
+    control_config = {'type': DRIVER, 'mode': 'standalone'}
+    control_bus_conf = generate_bus_conf(control_config, env["roles"]["control-bus"], context="control-bus")
+    env["control_bus_conf"] = control_bus_conf
+    ansible_control_bus_conf = generate_ansible_conf("control_bus_conf", control_bus_conf, config)
 
-    ansible_bus_conf = generate_ansible_conf(config, 'bus')
-    # use an implicit rabbitmq broker for the control-bus by default
-    control_config = env['config']['drivers'].get('broker', {'type': DRIVER})
-    ansible_control_bus_conf = generate_ansible_conf(control_config, 'control-bus')
-    # use deploy of each role
     extra_vars.update({"enos_action": "deploy"})
     extra_vars.update(ansible_bus_conf)
     extra_vars.update(ansible_control_bus_conf)
-    # finally let's give ansible the bus conf
-    if config:
-        extra_vars.update(config)
 
     run_ansible(["ansible/site.yml"], env["inventory"], extra_vars=extra_vars)
     env["broker"] = config['type']
@@ -431,13 +450,19 @@ def test_case_1(**kwargs):
 
     # Sharding
     # Here it means we distribute the clients and servers
-    # accross the different availbale shards
+    # accross the different available shards
     env = kwargs["env"]
     shards = len(env["control_bus_conf"])
     ombt_confs = {}
-    s_clients = shard_value(kwargs["nbr_clients"], shards)
-    s_servers = shard_value(kwargs["nbr_servers"], shards)
+    s_clients = shard_value(kwargs["nbr_clients"], shards, include_zero=True)
+    s_servers= shard_value(kwargs["nbr_servers"], shards, include_zero=True)
     for shard_index, s_client, s_server in zip(range(shards), s_clients, s_servers):
+        if not s_clients and not s_servers:
+            # no need to start a single controller to control nothing
+            continue
+        # NOTE(msimonin): one corner case would be if s_clients = 0
+        # and s_servers = 0. This would prevent ombt-controller to function normally
+        # but is unlikely to happen since nbr_clients >= nbr_servers
         kwargs["nbr_clients"] = s_client
         kwargs["nbr_servers"] = s_server
         ombt_conf = generate_shard_conf(shard_index, **kwargs)
@@ -461,7 +486,9 @@ def test_case_2(**kwargs):
     # accross the different available shards
     env = kwargs["env"]
     shards = len(env["control_bus_conf"])
-    s_topics = shard_list(topics, shards)
+    # NOTE(msimonin): No topic means no client and no servers
+    # Thus no test
+    s_topics = shard_list(topics, shards, include_empty=False)
     ombt_confs = {}
     for shard_index, s_topic in zip(range(shards), s_topics):
         kwargs['nbr_clients'] = len(s_topic)
@@ -486,7 +513,7 @@ def test_case_3(**kwargs):
     # We need to replicate the client on every controller
     env = kwargs["env"]
     shards = len(env["control_bus_conf"])
-    s_servers = shard_value(kwargs["nbr_servers"], shards)
+    s_servers= shard_value(kwargs["nbr_servers"], shards, include_zero=False)
     ombt_confs = {}
     for shard_index, s_server in zip(range(shards), s_servers):
         # kwargs["nbr_clients"] = 1
@@ -515,7 +542,7 @@ def test_case_4(**kwargs):
     shards = len(env["control_bus_conf"])
     nbr_clients = kwargs["nbr_clients"]
     nbr_servers = kwargs["nbr_servers"]
-    s_topics = shard_list(topics, shards)
+    s_topics = shard_list(topics, shards, include_empty=False)
     ombt_confs = {}
     for shard_index, s_topic in zip(range(shards), s_topics):
         kwargs['nbr_clients'] = nbr_clients * len(s_topic)
@@ -531,11 +558,31 @@ def generate_shard_conf(shard_index, nbr_clients, nbr_servers, call_type,
                         nbr_calls, pause, timeout, length, executor, env,
                         topics, iteration_id, **kwargs):
     """Generates the configuration of the agents of 1 shard (for 1 controller)."""
+    # build the specific variables for each client/server:
+    # ombt_conf = {
+    #   "rpc-client": {
+    #       "machine01": [confs],
+    #        ...
+    #   },
+    #   "rpc-server": {
+    #
+    #   },
+    #   "controller": {
+    #
+    #   }
+    #   ...
+    # }
+
+    ombt_confs = {"rpc_client": {}, "rpc-server": {}, "controller": {}}
+    if not topics:
+        return ombt_confs
 
     bus_conf = env["bus_conf"]
+    control_bus_conf = [env["control_bus_conf"][shard_index]]
+
     machine_client = env["roles"]["bus"]
     if "bus-client" in env["roles"]:
-        machine_client = env["roles"]["bus-client"]
+       machine_client = env["roles"]["bus-client"]
     machine_client = [m.alias for m in machine_client]
 
     machine_server = env["roles"]["bus"]
@@ -583,22 +630,6 @@ def generate_shard_conf(shard_index, nbr_clients, nbr_servers, call_type,
             }
         }]
 
-    #  build the specific variables for each client/server:
-    #  ombt_conf = {
-    #   "rpc-client": {
-    #       "machine01": [confs],
-    #        ...
-    #   },
-    #   "rpc-server": {
-    #
-    #   },
-    #   "controller": {
-    #
-    #   }
-    #   ...
-    #  }
-    control_bus_conf = [env["control_bus_conf"][shard_index]]
-    ombt_confs = {}
     for agent_desc in descs:
         agent_type = agent_desc["agent_type"]
         machines = agent_desc["machines"]
@@ -647,10 +678,9 @@ def test_case(ombt_confs, version, env, backup_dir=BACKUP_DIR, **kwargs):
         # NOTE(msimonin): This could be moved in each conf
         "ombt_version": version,
         "broker": env["broker"],
-        "bus_conf": [o.to_dict() for o in env["bus_conf"]]
+        "ombt_confs": serialize_ombt_confs(ombt_confs)
     }
-
-    extra_vars.update({'ombt_confs': serialize_ombt_confs(ombt_confs)})
+    
     run_ansible(["ansible/test_case_1.yml"], env["inventory"], extra_vars=extra_vars)
 
 
@@ -690,8 +720,12 @@ def backup(**kwargs):
         # NOTE(msimonin): this broker variable should be renamed
         # This corresponds to driver.type, or maybe embed this in the bus conf
         "broker": env["broker"],
-        "bus_conf": [o.to_dict() for o in env.get("bus_conf")]
     }
+
+    ansible_bus_conf = generate_ansible_conf("bus_conf", env.get("bus_conf"))
+    ansible_control_bus_conf = generate_ansible_conf("control_bus_conf", env.get("control_bus_conf"))
+    extra_vars.update(ansible_bus_conf)
+    extra_vars.update(ansible_control_bus_conf)
 
     run_ansible(["ansible/site.yml"], env["inventory"], extra_vars=extra_vars)
 
@@ -704,9 +738,13 @@ def destroy(**kwargs):
         "enos_action": "destroy",
         # NOTE(msimonin): this broker variable should be renamed
         # This corresponds to driver.type or maybe embed this in the bus_conf
-        "broker": env["broker"],
-        "bus_conf": [o.to_dict() for o in env.get("bus_conf")]
+        "broker": env["broker"]
     }
+
+    ansible_bus_conf = generate_ansible_conf("bus_conf", env.get("bus_conf"))
+    ansible_control_bus_conf = generate_ansible_conf("control_bus_conf", env.get("control_bus_conf"))
+    extra_vars.update(ansible_bus_conf)
+    extra_vars.update(ansible_control_bus_conf)
 
     run_ansible(["ansible/site.yml"], env["inventory"], extra_vars=extra_vars)
     run_ansible(["ansible/ombt.yml"], env["inventory"], extra_vars=extra_vars)

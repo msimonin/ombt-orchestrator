@@ -1,24 +1,54 @@
 ---
+- name: Creating the configuration directory
+  file:
+    path: /etc/rabbitmq
+    state: directory
+
+- name: Copying the configuration
+  template:
+    src: "rabbitmq.config.j2"
+    dest: "/etc/rabbitmq/{{ item.agent_id }}.config"
+  with_items: "{{ current_bus_conf }}"
+  when: item.machine == inventory_hostname
+
+
+# This generates the mapping host:ip
+# this is necessary for rabbitmq node (short names)
+# to resolve their names in the cluster
+- name: Building the list of rabbit hosts (DNS)
+  set_fact:
+    etc_hosts: "{{ etc_hosts | default({}) | combine( {hostvars[item].ansible_hostname: hostvars[item]['ansible_' + control_network].ipv4.address} ) }}"
+  with_items: "{{ ansible_play_hosts }}"
+
 - name: Install and start docker image rabbitmq
   docker_container:
-    name: rabbitmq
+    name: "{{ item.agent_id }}"
     image: rabbitmq:3-management
-    ports:
-      - "{{ item.port}}:5672"
-      - "{{ item.management_port }}:15672"
+    network_mode: host
     state: started
+    etc_hosts: "{{ etc_hosts }}"
     env:
+      RABBITMQ_NODENAME: "{{ item.agent_id }}@{{ ansible_hostname }}"
       RABBITMQ_LOGS: rabbitmq.log
+      RABBITMQ_ERLANG_COOKIE: "secret_cookie"
     volumes:
-      oo-rabbitmq-logs:/var/log/rabbitmq
-  with_items: "{{ bus_conf }}"
+      - "/etc/rabbitmq/{{ item.agent_id }}.config:/etc/rabbitmq/rabbitmq.config"
+      - "oo-{{ item.agent_id }}-logs:/var/log/rabbitmq"
+  with_items: "{{ current_bus_conf }}"
   when: item.machine == inventory_hostname
 
 - name: Wait for the bus to be started
   wait_for:
     host: "{{ hostvars[inventory_hostname]['ansible_' + control_network]['ipv4']['address'] }}"
     port: "{{ item.port }}"
-  with_items: "{{ bus_conf }}"
+  with_items: "{{ current_bus_conf }}"
   when: item.machine == inventory_hostname
+
+# For an unknown reason the plugin isn't loaded automatically as before
+- name: Enabling the management interface
+  command: "docker exec {{ item.agent_id }} rabbitmq-plugins enable rabbitmq_management"
+  with_items: "{{ current_bus_conf }}"
+  when: item.machine == inventory_hostname
+
 
 

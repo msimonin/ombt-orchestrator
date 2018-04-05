@@ -23,14 +23,23 @@
   roles:
     - grafana
 
+# NOTE(msimonin): The control bus is assumed to be rabbitmq only
+# configuration of this bus is taken from the conf
+# which let's us envision to enable other driver (e.g qdr) for the 
+# control bus (we would need to introduce a control_bus_driver_type variable 
+# somewhere to switch over) 
 - name: Control-bus deployment
   hosts: control-bus
   roles:
-      - rabbitmq-control
+      - rabbitmq
+  vars:
+    current_bus_conf: "{{ control_bus_conf }}"
 
 - name: RabbitMQ deployment
   hosts:
     - bus
+  vars:
+    current_bus_conf: "{{ bus_conf }}"
   roles:
     - { role: rabbitmq,
         when: broker == "rabbitmq" }
@@ -38,6 +47,8 @@
 - name: Qpid dispatch deployment
   hosts:
     - bus
+  vars:
+    current_bus_conf: "{{ bus_conf }}"
   roles:
     - { role: qdr,
         when: broker == "qdr" }

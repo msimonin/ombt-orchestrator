@@ -1,11 +1,16 @@
 ---
 - name: Destroying rabbitmq container
   docker_container:
-    name: "rabbitmq"
+    name: "{{ item.agent_id }}"
     state: absent
     force_kill: yes
+  with_items: "{{ current_bus_conf }}"
+  when: item.machine == inventory_hostname
 
 - name: Destroying associating volume
   docker_volume:
-    name: oo-rabbitmq-logs
+    name: "oo-{{ item.agent_id }}-logs"
     state: absent
+  with_items: "{{ current_bus_conf }}"
+  when: item.machine == inventory_hostname
+
