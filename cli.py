@@ -4,13 +4,54 @@ import logging
 from os import path
 
 import click
+import yaml
 
 import campaign as c
 import tasks as t
 
 logging.basicConfig(level=logging.DEBUG)
 
-DEFAULT_CONF = path.join(path.dirname(path.realpath(__file__)), 'conf.yaml')
+# default app configuration
+CONF = path.join(
+    path.dirname(
+        path.realpath(__file__)), "conf.yaml")
+# default driver type
+DRIVER = "rabbitmq"
+# default number of clients
+NBR_CLIENTS = 1
+# default number of servers
+NBR_SERVERS = 1
+# default number topics
+NBR_TOPICS = 1
+# default call type
+CALL_TYPE = "rpc-call"
+# default number of calls
+NBR_CALLS = 100
+# default pause between calls
+PAUSE = 0.0
+# default timeout
+TIMEOUT = 60
+# default version of ombt container
+VERSION = "msimonin/ombt:singleton"
+# default backup directory name
+BACKUP_DIR = "backup"
+# default length of messages
+LENGTH = 1024
+# default type of ombt executor
+EXECUTOR = "threading"
+# default pause between iterations (seconds)
+ITERATION_PAUSE = 1.0
+
+
+def load_config(file_path):
+    """
+    Read configuration from a file in YAML format.
+    :param file_path: Path of the configuration file.
+    :return:
+    """
+    with open(file_path) as f:
+        configuration = yaml.safe_load(f)
+    return configuration
 
 
 @click.group()
@@ -19,103 +60,151 @@ def cli():
 
 
 @cli.command(help="Claim resources from a PROVIDER and configure them.")
-@click.argument('provider')
+@click.argument("provider")
 @click.option("--driver",
-              default=t.DRIVER,
+              default=DRIVER,
               help="communication bus driver")
+@click.option("--constraints",
+              help="network constraints")
 @click.option("--force",
               is_flag=True,
-              help='force redeployment')
+              help="force redeployment")
 @click.option("--conf",
-              default=DEFAULT_CONF,
+              default=CONF,
               help="alternative configuration file")
 @click.option("--env",
               help="alternative environment directory")
-def deploy(provider, driver, force, conf, env):
-    config = t.load_config(conf)
+def deploy(provider, driver, constraints, force, conf, env):
+    config = load_config(conf)
     t.PROVIDERS[provider](force=force, config=config, env=env)
     t.inventory()
+    if constraints:
+        t.emulate(constraints=constraints, env=env)
     t.prepare(driver=driver, env=env)
 
 
 @cli.command(help="Claim resources on Grid'5000 (frontend).")
+@click.option("--constraints",
+              help="network constraints")
 @click.option("--force",
               is_flag=True,
               help="force redeployment")
 @click.option("--conf",
-              default=DEFAULT_CONF,
+              default=CONF,
               help="alternative configuration file")
 @click.option("--env",
               help="alternative environment directory")
-def g5k(force, config, env):
+def g5k(constraints, force, conf, env):
+    config = load_config(conf)
     t.g5k(force=force, config=config, env=env)
+    if constraints:
+        t.inventory()
+        t.emulate(constraints=constraints, env=env)
 
 
 @cli.command(help="Claim resources on vagrant (localhost).")
+@click.option("--constraints",
+              help="network constraints")
 @click.option("--force",
               is_flag=True,
               help="force redeployment")
 @click.option("--conf",
-              default=DEFAULT_CONF,
+              default=CONF,
               help="alternative configuration file")
 @click.option("--env",
               help="alternative environment directory")
-def vagrant(force, config, env):
+def vagrant(constraints, force, conf, env):
+    config = load_config(conf)
     t.vagrant(force=force, config=config, env=env)
+    if constraints:
+        t.inventory()
+        t.emulate(constraints=constraints, env=env)
 
 
-@cli.command(help="Generate the Ansible inventory [after g5k, and vagrant].")
-def inventory():
-    t.inventory()
+@cli.command(help="Generate the Ansible inventory [after g5k or vagrant].")
+@click.option("--env",
+              help="alternative environment directory")
+def inventory(env):
+    t.inventory(env=env)
 
 
-@cli.command(help="Configure available resources [after g5k, vagrant, and inventory].")
-def prepare():
-    t.prepare()
+# TODO declare in the doc that driver and TC are configured on the yaml file
+@cli.command(help="Configure available resources [after deploy, inventory or destroy].")
+@click.option("--driver",
+              default=DRIVER,
+              help="communication bus driver")
+@click.option("--env",
+              help="alternative environment directory")
+def prepare(driver, env):
+    t.prepare(driver=driver, env=env)
 
 
-@cli.command(help="Destroy all the running dockers (keeping deployed resources).")
-def destroy():
-    t.destroy()
+@cli.command(help="Destroy all the running containers (keeping deployed resources).")
+@click.option("--env",
+              help="alternative environment directory")
+def destroy(env):
+    t.destroy(env=env)
 
 
-@cli.command(help="Backup environment logs [after test_case_*].")
+@cli.command(help="Set network configuration constraints [after deploy, inventory or destroy]")
+@click.option("--constraints",
+              help="network constraints")
+@click.option("--validate",
+              is_flag=True,
+              help="validate constraints")
+@click.option("--reset",
+              is_flag=True,
+              help="reset constraints")
+@click.option("--env",
+              help="alternative environment directory")
+def traffic(constraints, validate, reset, env):
+    if constraints:
+        t.emulate(constraints=constraints, env=env)
+    elif validate:
+        t.validate(env=env)
+    elif reset:
+        t.reset(env=env)
+
+
+@cli.command("backup", help="Backup environment logs [after test_case_*].")
 @click.option("--backup",
-              default=t.BACKUP_DIR,
+              default=BACKUP_DIR,
               help="alternative backup directory")
-def backup(backup):
-    t.backup(backup_dir=backup)
+@click.option("--env",
+              help="alternative environment directory")
+def perform_backup(backup, env):
+    t.backup(backup_dir=backup, env=env)
 
 
 @cli.command(help="Run the test case 1: one single large (distributed) target.")
 @click.option("--nbr_clients",
-              default=t.NBR_CLIENTS,
+              default=NBR_CLIENTS,
               help="number of clients")
 @click.option("--nbr_servers",
-              default=t.NBR_SERVERS,
+              default=NBR_SERVERS,
               help="number of servers")
 @click.option("--call_type",
-              default=t.CALL_TYPE,
+              default=CALL_TYPE,
               type=click.Choice(["rpc-call", "rpc-cast", "rpc-fanout"]),
               help="call type (client): rpc_call (blocking), rpc_cast (non-blocking), or rpc-fanout (broadcast)")
 @click.option("--nbr_calls",
-              default=t.NBR_CALLS,
+              default=NBR_CALLS,
               help="number of execution calls (client)")
 @click.option("--pause",
-              default=t.PAUSE,
+              default=PAUSE,
               help="pause between calls in seconds (client)")
 @click.option("--timeout",
-              default=t.TIMEOUT,
+              default=TIMEOUT,
               help="max allowed time for benchmark in second (controller)")
 @click.option("--length",
-              default=t.LENGTH,
+              default=LENGTH,
               help="size of payload in bytes")
 @click.option("--executor",
-              default=t.EXECUTOR,
+              default=EXECUTOR,
               type=click.Choice(["eventlet", "threading"]),
               help="executor type (server): evenlet or threading")
 @click.option("--version",
-              default=t.VERSION,
+              default=VERSION,
               help="ombt version as a docker tag")
 @click.option("--env",
               default=None,
@@ -135,30 +224,30 @@ def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, 
 
 @cli.command(help="Run the test case 2: multiple distributed targets.")
 @click.option("--nbr_topics",
-              default=t.NBR_TOPICS,
+              default=NBR_TOPICS,
               help="number of topics")
 @click.option("--call_type",
-              default=t.CALL_TYPE,
+              default=CALL_TYPE,
               type=click.Choice(["rpc-call", "rpc-cast", "rpc-fanout"]),
               help="call type (client): rpc_call (blocking), rpc_cast (non-blocking), or rpc-fanout (broadcast)")
 @click.option("--nbr_calls",
-              default=t.NBR_CALLS,
+              default=NBR_CALLS,
               help="number of execution calls (client)")
 @click.option("--pause",
-              default=t.PAUSE,
+              default=PAUSE,
               help="pause between calls in seconds (client)")
 @click.option("--timeout",
-              default=t.TIMEOUT,
+              default=TIMEOUT,
               help="max allowed time for benchmark in second (controller)")
 @click.option("--length",
-              default=t.LENGTH,
+              default=LENGTH,
               help="size of payload in bytes")
 @click.option("--executor",
-              default=t.EXECUTOR,
+              default=EXECUTOR,
               type=click.Choice(["eventlet", "threading"]),
               help="executor type (server): evenlet or threading")
 @click.option("--version",
-              default=t.VERSION,
+              default=VERSION,
               help="ombt version as a docker tag")
 @click.option("--env",
               default=None,
@@ -177,29 +266,29 @@ def test_case_2(nbr_topics, call_type, nbr_calls, pause, timeout, length, execut
 
 @cli.command(help="Run the test case 3: one single large distributed fanout.")
 @click.option("--nbr_clients",
-              default=t.NBR_CLIENTS,
+              default=NBR_CLIENTS,
               help="number of clients")
 @click.option("--nbr_servers",
-              default=t.NBR_SERVERS,
+              default=NBR_SERVERS,
               help="Number of servers that will be deployed")
 @click.option("--nbr_calls",
-              default=t.NBR_CALLS,
+              default=NBR_CALLS,
               help="Number of calls/cast to execute [client]")
 @click.option("--pause",
-              default=t.PAUSE,
+              default=PAUSE,
               help="pause between calls in seconds (client)")
 @click.option("--timeout",
-              default=t.TIMEOUT,
+              default=TIMEOUT,
               help="max allowed time for benchmark in seconds (controller)")
 @click.option("--length",
-              default=t.LENGTH,
+              default=LENGTH,
               help="size of payload in bytes")
 @click.option("--executor",
-              default=t.EXECUTOR,
+              default=EXECUTOR,
               type=click.Choice(["eventlet", "threading"]),
               help="executor type (server): evenlet or threading")
 @click.option("--version",
-              default=t.VERSION,
+              default=VERSION,
               help="ombt version as a docker tag")
 @click.option("--env",
               default=None,
@@ -218,32 +307,32 @@ def test_case_3(nbr_clients, nbr_servers, nbr_calls, pause, timeout, length, exe
 
 @cli.command(help="Run the test case 4: multiple distributed fanouts")
 @click.option("--nbr_clients",
-              default=t.NBR_CLIENTS,
+              default=NBR_CLIENTS,
               help="number of clients per topic")
 @click.option("--nbr_servers",
-              default=t.NBR_SERVERS,
+              default=NBR_SERVERS,
               help="number of servers per topic")
 @click.option("--nbr_topics",
-              default=t.NBR_TOPICS,
+              default=NBR_TOPICS,
               help="number of topics")
 @click.option("--nbr_calls",
-              default=t.NBR_CALLS,
+              default=NBR_CALLS,
               help="number of execution calls (client)")
 @click.option("--pause",
-              default=t.PAUSE,
+              default=PAUSE,
               help="pause between calls in seconds (client)")
 @click.option("--timeout",
-              default=t.TIMEOUT,
+              default=TIMEOUT,
               help="max allowed time for benchmark in seconds (controller)")
 @click.option("--length",
-              default=t.LENGTH,
+              default=LENGTH,
               help="size of payload in bytes")
 @click.option("--executor",
-              default=t.EXECUTOR,
+              default=EXECUTOR,
               type=click.Choice(["eventlet", "threading"]),
               help="executor type (server): evenlet or threading")
 @click.option("--version",
-              default=t.VERSION,
+              default=VERSION,
               help="ombt version as a docker tag")
 @click.option("--env",
               default=None,
@@ -262,7 +351,7 @@ def test_case_4(nbr_clients, nbr_servers, nbr_topics, nbr_calls, pause, timeout,
 
 
 @cli.command(help="Perform a TEST according to the (swept) parameters described in configuration.")
-@click.argument('test')
+@click.argument("test")
 @click.option("--provider",
               default="vagrant",
               help="target deployment infrastructure")
@@ -273,27 +362,28 @@ def test_case_4(nbr_clients, nbr_servers, nbr_topics, nbr_calls, pause, timeout,
               is_flag=True,
               help="reuse of resources in next iteration")
 @click.option("--pause",
-              default=c.PAUSE,
+              default=ITERATION_PAUSE,
               help="break between iterations in seconds (only incremental)")
 @click.option("--conf",
-              default=DEFAULT_CONF,
+              default=CONF,
               help="alternative configuration file")
 @click.option("--env",
               default=None,
               help="alternative environment directory")
 def campaign(test, provider, force, incremental, pause, conf, env):
+    config = load_config(conf)
     if incremental:
         c.incremental_campaign(test=test,
                                provider=provider,
                                force=force,
                                pause=pause,
-                               conf=conf,
+                               config=config,
                                env=env)
     else:
         c.campaign(test=test,
                    provider=provider,
                    force=force,
-                   conf=conf,
+                   config=config,
                    env=env)
 
 
