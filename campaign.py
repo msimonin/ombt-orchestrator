@@ -292,7 +292,7 @@ def incremental_campaign(test, provider, force, pause, conf, env):
     # use uppercase letters to identify groups
     groups = itertools.cycle(string.ascii_uppercase)
     while current_group:
-        group_id = groups.next()
+        group_id = next(groups)
         # use numbers (incremental) to identify iterations by group
         iterations = itertools.count()
         try:
@@ -301,7 +301,7 @@ def incremental_campaign(test, provider, force, pause, conf, env):
             for fixed_parameters in zip_parameters(current_group, arguments):
                 current_parameters = current_group.copy()
                 current_parameters.update(fixed_parameters)
-                current_parameters.update({'iteration_id': '{}-{}'.format(group_id, iterations.next())})
+                current_parameters.update({'iteration_id': '{}-{}'.format(group_id, next(iterations))})
                 current_parameters.update({'backup_dir': generate_id(current_parameters)})
                 # fix number of clients and servers (or topics) to deploy
                 TEST_CASES[test]['fixp'](parameters, current_parameters)
