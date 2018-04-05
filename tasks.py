@@ -309,16 +309,19 @@ def get_backup_directory(backup_dir):
 # to factorize it and have a switch on the command line to choose.
 @enostask(new=True)
 def g5k(**kwargs):
+    # Here **kwargs strictly means (force, config, env), no more no less
     init_provider(G5k, 'g5k', **kwargs)
 
 
 @enostask(new=True)
 def vagrant(**kwargs):
+    # Here **kwargs strictly means (force, config, env), no more no less
     init_provider(Enos_vagrant, 'vagrant', **kwargs)
 
 
 @enostask(new=True)
 def chameleon(**kwargs):
+    # Here **kwargs strictly means (force, config, env), no more no less
     init_provider(Chameleonkvm, 'chameleon', **kwargs)
 
 
@@ -420,6 +423,9 @@ def prepare(**kwargs):
 
 @enostask()
 def test_case_1(**kwargs):
+    if "iteration_id" not in kwargs:
+        kwargs["iteration_id"] = uuid.uuid4()
+
     if "topics" not in kwargs:
         kwargs["topics"] = get_topics(1)
 
@@ -442,6 +448,9 @@ def test_case_1(**kwargs):
 
 @enostask()
 def test_case_2(**kwargs):
+    if "iteration_id" not in kwargs:
+        kwargs["iteration_id"] = uuid.uuid4()
+
     if "topics" not in kwargs:
         nbr_topics = kwargs["nbr_topics"]
         kwargs["topics"] = get_topics(nbr_topics)
@@ -466,6 +475,9 @@ def test_case_2(**kwargs):
 
 @enostask()
 def test_case_3(**kwargs):
+    if "iteration_id" not in kwargs:
+        kwargs["iteration_id"] = uuid.uuid4()
+
     if "topics" not in kwargs:
         kwargs["topics"] = get_topics(1)
 
@@ -487,6 +499,9 @@ def test_case_3(**kwargs):
 
 @enostask()
 def test_case_4(**kwargs):
+    if "iteration_id" not in kwargs:
+        kwargs["iteration_id"] = uuid.uuid4()
+
     kwargs["call_type"] = "rpc-cast"
     if "topics" not in kwargs:
         nbr_topics = kwargs["nbr_topics"]
@@ -514,7 +529,7 @@ def test_case_4(**kwargs):
 
 def generate_shard_conf(shard_index, nbr_clients, nbr_servers, call_type,
                         nbr_calls, pause, timeout, length, executor, env,
-                        topics, iteration_id=uuid.uuid4(), **kwargs):
+                        topics, iteration_id, **kwargs):
     """Generates the configuration of the agents of 1 shard (for 1 controller)."""
 
     bus_conf = env["bus_conf"]
