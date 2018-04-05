@@ -16,9 +16,6 @@ from execo_engine import sweep, ParamSweeper, HashableDict
 import tasks as t
 
 
-PAUSE = 1.0
-
-
 def filter_1(parameters):
     return filter_params(parameters, condition=lambda x: x['nbr_servers'] <= x['nbr_clients'])
 
@@ -120,6 +117,7 @@ def fix_3(parameters, current_parameters):
     current_parameters.update({'nbr_clients': nbr_clients})
     current_parameters.update({'nbr_servers': current_servers - previous_servers})
 
+
 TEST_CASES = {
     'test_case_1': {'defn': t.test_case_1,
                     'filtr': filter_1,
@@ -134,7 +132,7 @@ TEST_CASES = {
     'test_case_3': {'defn': t.test_case_3,
                     'filtr': filter_3,
                     'fixp': fix_3,
-                    'zip': ['nbr_servers', 'nbr_calls', 'pause'] ,
+                    'zip': ['nbr_servers', 'nbr_calls', 'pause'],
                     'key': 'nbr_servers'},
     # TODO complete fixp and zip values
     'test_case_4': {'defn': t.test_case_4,
@@ -176,8 +174,7 @@ def generate_id(params):
     return '-'.join(["%s__%s" % (replace(k), replace(v)) for k, v in sorted(params.items())])
 
 
-def campaign(test, provider, force, conf, env):
-    config = t.load_config(conf)
+def campaign(test, provider, force, config, env):
     parameters = config['campaign'][test]
     sweeps = sweep(parameters)
     current_env_dir = env if env else test
@@ -270,17 +267,16 @@ def sweep_with_lists(parameters, arguments):
     return [HashableDict(d) for d in sweeps]
 
 
-def incremental_campaign(test, provider, force, pause, conf, env):
+def incremental_campaign(test, provider, force, pause, config, env):
     """Execute a test incrementally (reusing deployment).
 
     :param test: name of the test to execute
     :param provider: target infrastructure
     :param force: override deployment configuration
     :param pause: break between iterations in seconds
-    :param conf: file configuration
+    :param config: orchestration configuration
     :param env: directory containing the environment configuration
     """
-    config = t.load_config(conf)
     parameters = config['campaign'][test]
     arguments = TEST_CASES[test]['zip']
     sweeps = sweep_with_lists(parameters, arguments)
@@ -293,7 +289,7 @@ def incremental_campaign(test, provider, force, pause, conf, env):
     # use uppercase letters to identify groups
     groups = itertools.cycle(string.ascii_uppercase)
     while current_group:
-        group_id = groups.next()
+        group_id = next(groups)
         # use numbers (incremental) to identify iterations by group
         iterations = itertools.count()
         try:
@@ -302,7 +298,7 @@ def incremental_campaign(test, provider, force, pause, conf, env):
             for fixed_parameters in zip_parameters(current_group, arguments):
                 current_parameters = current_group.copy()
                 current_parameters.update(fixed_parameters)
-                current_parameters.update({'iteration_id': '{}-{}'.format(group_id, iterations.next())})
+                current_parameters.update({'iteration_id': '{}-{}'.format(group_id, next(iterations))})
                 current_parameters.update({'backup_dir': generate_id(current_parameters)})
                 # fix number of clients and servers (or topics) to deploy
                 TEST_CASES[test]['fixp'](parameters, current_parameters)

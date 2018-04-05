@@ -10,6 +10,8 @@ campaign:
     length: [1024]
     executor: ["threading"]
     driver: ["broker"]
+    delay: [ "0ms", "10ms", "100ms"]
+    traffic: ["tc-10"]
   test_case_2:
     nbr_topics: [10]
     call_type: ["rpc-call", "rpc-cast"]
@@ -48,6 +50,12 @@ drivers:
     args: [1]
     qdr_image: msimonin/qdrouterd-collectd
     qdr_version: 1.0.1
+traffic:
+  tc-10:
+    enable: True
+    default_delay: 10ms
+    default_rate: 10gbit
+    groups: ["bus", "tc-serv-1"]
 registry:
   type: internal
 g5k:
@@ -85,6 +93,15 @@ g5k:
           - chrony
         cluster: parasilo
         nodes: 1 
+        primary_network: n1
+        secondary_networks: []
+      - roles:
+          - ombt-server
+          - tc-serv-1
+          - telegraf
+          - chrony
+        cluster: parasilo
+        nodes: 1
         primary_network: n1
         secondary_networks: []
       - roles:
