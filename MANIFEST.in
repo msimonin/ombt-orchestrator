@@ -1,0 +1,4 @@
+# maybe there is a better way to do it:
+# https://stackoverflow.com/questions/1612733
+
+recursive-include orchestrator/ansible *
