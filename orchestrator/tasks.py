@@ -12,8 +12,8 @@ from enoslib.infra.enos_g5k.provider import G5k
 from enoslib.infra.enos_vagrant.provider import Enos_vagrant
 from enoslib.task import enostask
 
-from cli import DRIVER, BACKUP_DIR
-from qpid_dispatchgen import get_conf, generate, round_robin
+from orchestrator.constants import BACKUP_DIR, ANSIBLE_DIR, DRIVER
+from orchestrator.qpid_dispatchgen import get_conf, generate, round_robin
 
 if sys.version_info[0] < 3:
     import pathlib2 as pathlib
@@ -412,7 +412,7 @@ def prepare(**kwargs):
     env = kwargs["env"]
     driver = kwargs["driver"]
     # Generate inventory
-    config = env['config']['drivers'].get(driver, {'type': DRIVER})
+    config = env['config']['drivers'].get(driver, DRIVER)
     extra_vars = {
         "registry": env["config"]["registry"],
         "broker": config["type"]
@@ -427,7 +427,7 @@ def prepare(**kwargs):
     ansible_bus_conf = generate_ansible_conf("bus_conf", bus_conf, config)
 
     # NOTE(msimonin): still hardcoding the control_bus configuration for now
-    control_config = {'type': DRIVER, 'mode': 'standalone'}
+    control_config = DRIVER
     control_bus_conf = generate_bus_conf(control_config, env["roles"]["control-bus"], context="control-bus")
     env["control_bus_conf"] = control_bus_conf
     ansible_control_bus_conf = generate_ansible_conf("control_bus_conf", control_bus_conf, config)
@@ -436,7 +436,7 @@ def prepare(**kwargs):
     extra_vars.update(ansible_bus_conf)
     extra_vars.update(ansible_control_bus_conf)
 
-    run_ansible(["ansible/site.yml"], env["inventory"], extra_vars=extra_vars)
+    run_ansible([path.join(ANSIBLE_DIR, "site.yml")], env["inventory"], extra_vars=extra_vars)
     env["broker"] = config['type']
 
 
@@ -681,7 +681,7 @@ def test_case(ombt_confs, version, env, backup_dir=BACKUP_DIR, **kwargs):
         "ombt_confs": serialize_ombt_confs(ombt_confs)
     }
     
-    run_ansible(["ansible/test_case_1.yml"], env["inventory"], extra_vars=extra_vars)
+    run_ansible([path.join(ANSIBLE_DIR, "test_case.yml")], env["inventory"], extra_vars=extra_vars)
 
 
 @enostask()
@@ -727,7 +727,7 @@ def backup(**kwargs):
     extra_vars.update(ansible_bus_conf)
     extra_vars.update(ansible_control_bus_conf)
 
-    run_ansible(["ansible/site.yml"], env["inventory"], extra_vars=extra_vars)
+    run_ansible([path.join(ANSIBLE_DIR, "site.yml")], env["inventory"], extra_vars=extra_vars)
 
 
 @enostask()
@@ -746,5 +746,5 @@ def destroy(**kwargs):
     extra_vars.update(ansible_bus_conf)
     extra_vars.update(ansible_control_bus_conf)
 
-    run_ansible(["ansible/site.yml"], env["inventory"], extra_vars=extra_vars)
-    run_ansible(["ansible/ombt.yml"], env["inventory"], extra_vars=extra_vars)
+    run_ansible([path.join(ANSIBLE_DIR, "site.yml")], env["inventory"], extra_vars=extra_vars)
+    run_ansible([path.join(ANSIBLE_DIR, "ombt.yml")], env["inventory"], extra_vars=extra_vars)
