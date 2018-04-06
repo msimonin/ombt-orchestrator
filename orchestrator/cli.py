@@ -1,46 +1,14 @@
-#!/usr/bin/env python
-
 import logging
-from os import path
-
 import click
 import yaml
 
-import campaign as c
-import tasks as t
+import orchestrator.campaign as c
+import orchestrator.tasks as t
+from orchestrator.constants import TIMEOUT, PAUSE, NBR_CALLS, EXECUTOR, \
+    LENGTH, ITERATION_PAUSE, CONF, BACKUP_DIR, NBR_CLIENTS, NBR_SERVERS, \
+    CALL_TYPE, VERSION, NBR_TOPICS, DRIVER_NAME
 
 logging.basicConfig(level=logging.DEBUG)
-
-# default app configuration
-CONF = path.join(
-    path.dirname(
-        path.realpath(__file__)), "conf.yaml")
-# default driver type
-DRIVER = "rabbitmq"
-# default number of clients
-NBR_CLIENTS = 1
-# default number of servers
-NBR_SERVERS = 1
-# default number topics
-NBR_TOPICS = 1
-# default call type
-CALL_TYPE = "rpc-call"
-# default number of calls
-NBR_CALLS = 100
-# default pause between calls
-PAUSE = 0.0
-# default timeout
-TIMEOUT = 60
-# default version of ombt container
-VERSION = "msimonin/ombt:singleton"
-# default backup directory name
-BACKUP_DIR = "backup"
-# default length of messages
-LENGTH = 1024
-# default type of ombt executor
-EXECUTOR = "threading"
-# default pause between iterations (seconds)
-ITERATION_PAUSE = 1.0
 
 
 def load_config(file_path):
@@ -62,7 +30,7 @@ def cli():
 @cli.command(help="Claim resources from a PROVIDER and configure them.")
 @click.argument("provider")
 @click.option("--driver",
-              default=DRIVER,
+              default=DRIVER_NAME,
               help="communication bus driver")
 @click.option("--constraints",
               help="network constraints")
@@ -131,7 +99,7 @@ def inventory(env):
 # TODO declare in the doc that driver and TC are configured on the yaml file
 @cli.command(help="Configure available resources [after deploy, inventory or destroy].")
 @click.option("--driver",
-              default=DRIVER,
+              default=DRIVER_NAME,
               help="communication bus driver")
 @click.option("--env",
               help="alternative environment directory")
@@ -385,7 +353,3 @@ def campaign(test, provider, force, incremental, pause, conf, env):
                    force=force,
                    config=config,
                    env=env)
-
-
-if __name__ == "__main__":
-    cli()

@@ -13,7 +13,7 @@ import itertools
 from enoslib.errors import EnosError
 from execo_engine import sweep, ParamSweeper, HashableDict
 
-import tasks as t
+import orchestrator.tasks as t
 
 
 def filter_1(parameters):
@@ -198,7 +198,7 @@ def campaign(test, provider, force, config, env):
             print(error, file=sys.stderr)
             print(error.args, file=sys.stderr)
         finally:
-           #t.destroy()
+            t.destroy()
             current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
 
 
