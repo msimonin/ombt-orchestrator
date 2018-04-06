@@ -177,22 +177,22 @@ def generate_id(params):
 def campaign(test, provider, force, config, env):
     parameters = config['campaign'][test]
     sweeps = sweep(parameters)
-    current_env_dir = env if env else test
-    sweeper = ParamSweeper(persistence_dir=path.join(current_env_dir, "sweeps"),
+    env_dir = env if env else test
+    sweeper = ParamSweeper(persistence_dir=path.join(env_dir, "sweeps"),
                            sweeps=sweeps,
                            save_sweeps=True,
                            name=test)
-    t.PROVIDERS[provider](force=force, config=config, env=current_env_dir)
+    t.PROVIDERS[provider](force=force, config=config, env=env_dir)
     t.inventory()
     current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
     while current_parameters:
         try:
             current_parameters.update({'backup_dir': generate_id(current_parameters)})
-            t.prepare(driver=current_parameters['driver'], env=current_env_dir)
+            t.prepare(driver=current_parameters['driver'], env=env_dir)
             TEST_CASES[test]['defn'](**current_parameters)
             t.backup(backup_dir=current_parameters['backup_dir'], env=env_dir)
             sweeper.done(current_parameters)
-            dump_parameters(current_env_dir, current_parameters)
+            dump_parameters(env_dir, current_parameters)
         except (AttributeError, EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
             sweeper.skip(current_parameters)
             print(error, file=sys.stderr)
