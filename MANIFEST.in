@@ -2,4 +2,4 @@
 # https://stackoverflow.com/questions/1612733
 
 recursive-include orchestrator/ansible *
-include README.md
+include LICENSE.txt
