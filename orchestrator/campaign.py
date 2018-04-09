@@ -79,28 +79,86 @@ def sort_parameters(parameters, key):
     return sorted(parameters, key=operator.itemgetter('driver', 'call_type', key))
 
 
-def get_current_values(params, current, key):
+def get_current_values(params, current, keys):
     """Infers the previous value for key in params regarding the current value.
+
+    >>> # Single key
+    >>> get_current_values({'key1': [1, 2, 3]}, {'key1': 1}, ['key1'])
+    ([0], [1])
+    >>> get_current_values({'key1': [1, 2, 3]}, {'key1': 2}, ['key1'])
+    ([1], [2])
+    >>> # Several keys
+    >>> get_current_values({'key1': [1, 2, 3], 'key2': [4, 5, 6]}, {'key1': 2, 'key2': 5}, ['key1', 'key2'])
+    ([1, 4], [2, 5])
+    >>> # This allows to deal with constant values
+    >>> get_current_values({'key1': [1, 2, 3], 'key2': [4, 4, 4]}, {'key1': 1, 'key2': 4}, ['key1', 'key2'])
+    ([0, 0], [1, 4])
+    >>> get_current_values({'key1': [1, 2, 3], 'key2': [4, 4, 4]}, {'key1': 2, 'key2': 4}, ['key1', 'key2'])
+    ([1, 4], [2, 4])
     """
-    plist = params.get(key)
-    state = current.get(key)
-    index = plist.index(state)
-    return (0, state) if index == 0 else (plist[index-1], state)
+    plists = [params.get(key) for key in keys]
+    states = [current.get(key) for key in keys]
+    plists = zip(*plists)
+    index = plists.index(tuple(states))
+    return ([0] * len(states), states) if index == 0 else (list(plists[index-1]), states)
 
 
 def fix_1(parameters, current_parameters):
-    previous_clients, current_clients = get_current_values(parameters, current_parameters, 'nbr_clients')
-    previous_servers, current_servers = get_current_values(parameters, current_parameters, 'nbr_servers')
+    """
+    >>> import pprint
+    >>> parameters = {'nbr_clients': [1, 2, 3], 'nbr_servers': [4, 5, 6]}
+    >>> current_parameters = {'nbr_clients': 1, 'nbr_servers': 4}
+    >>> fix_1(parameters, current_parameters)
+    >>> pprint.pprint(current_parameters)
+    {'nbr_clients': 1, 'nbr_servers': 4, 'topics': ['topic-0']}
+
+    >>> parameters = {'nbr_clients': [1, 2, 3], 'nbr_servers': [4, 5, 6]}
+    >>> current_parameters = {'nbr_clients': 2, 'nbr_servers': 5}
+    >>> fix_1(parameters, current_parameters)
+    >>> pprint.pprint(current_parameters)
+    {'nbr_clients': 1, 'nbr_servers': 1, 'topics': ['topic-0']}
+
+    >>> # Allowing nbr_servers to be constants
+    >>> parameters = {'nbr_clients': [1, 2, 3], 'nbr_servers': [4, 4, 4]}
+    >>> current_parameters = {'nbr_clients': 2, 'nbr_servers': 4}
+    >>> fix_1(parameters, current_parameters)
+    >>> pprint.pprint(current_parameters)
+    {'nbr_clients': 1, 'nbr_servers': 0, 'topics': ['topic-0']}
+
+    >>> # Allowing nbr_servers to be constants
+    >>> parameters = {'nbr_clients': [1, 2, 3], 'nbr_servers': [4, 4, 4]}
+    >>> current_parameters = {'nbr_clients': 1, 'nbr_servers': 4}
+    >>> fix_1(parameters, current_parameters)
+    >>> pprint.pprint(current_parameters)
+    {'nbr_clients': 1, 'nbr_servers': 4, 'topics': ['topic-0']}
+    """
+    # Note(msimonin): We may want to extend the get_current_value to all 'zip' elements
+    [p_clients, p_servers], [c_clients, c_servers] = get_current_values(
+        parameters, current_parameters, ['nbr_clients', 'nbr_servers'])
     current_parameters.update({'topics': ['topic-0']})
-    current_parameters.update({'nbr_clients': current_clients - previous_clients})
-    current_parameters.update({'nbr_servers': current_servers - previous_servers})
+    current_parameters.update({'nbr_clients': c_clients - p_clients})
+    current_parameters.update({'nbr_servers': c_servers - p_servers})
 
 
 def fix_2(parameters, current_parameters):
+    """
+    >>> import pprint
+    >>> parameters = {'nbr_topics': [1, 2, 3]}
+    >>> current_parameters = {'nbr_topics': 1}
+    >>> fix_2(parameters, current_parameters)
+    >>> pprint.pprint(current_parameters)
+    {'nbr_clients': 1, 'nbr_servers': 1, 'nbr_topics': 1, 'topics': ['topic-0']}
+
+    >>> parameters = {'nbr_topics': [1, 2, 3]}
+    >>> current_parameters = {'nbr_topics': 2}
+    >>> fix_2(parameters, current_parameters)
+    >>> pprint.pprint(current_parameters)
+    {'nbr_clients': 1, 'nbr_servers': 1, 'nbr_topics': 2, 'topics': ['topic-1']}
+    """
     topics_list = parameters.get('nbr_topics')
     max_topics = max(topics_list)
     all_topics = t.get_topics(max_topics)
-    previous_nbr_topics, nbr_topics = get_current_values(parameters, current_parameters, 'nbr_topics')
+    [previous_nbr_topics], [nbr_topics] = get_current_values(parameters, current_parameters, ['nbr_topics'])
     current_topics = all_topics[previous_nbr_topics:nbr_topics]
     current_parameters.update({'topics': current_topics})
     current_parameters.update({'nbr_clients': len(current_topics)})
@@ -108,7 +166,22 @@ def fix_2(parameters, current_parameters):
 
 
 def fix_3(parameters, current_parameters):
-    previous_servers, current_servers = get_current_values(parameters, current_parameters, 'nbr_servers')
+    """
+    >>> import pprint
+    >>> parameters = {'nbr_servers': [4, 5, 6]}
+    >>> current_parameters = {'nbr_servers': 4}
+    >>> fix_3(parameters, current_parameters)
+    >>> pprint.pprint(current_parameters)
+    {'nbr_clients': 1, 'nbr_servers': 4, 'topics': ['topic-0']}
+
+    >>> parameters = {'nbr_servers': [4, 5, 6]}
+    >>> current_parameters = {'nbr_servers': 5}
+    >>> fix_3(parameters, current_parameters)
+    >>> pprint.pprint(current_parameters)
+    {'nbr_clients': 0, 'nbr_servers': 1, 'topics': ['topic-0']}
+    """
+
+    [previous_servers], [current_servers] = get_current_values(parameters, current_parameters, ['nbr_servers'])
     if previous_servers:
         nbr_clients = 0
     else:
