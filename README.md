@@ -44,10 +44,8 @@ cd ombt-orchestrator
 * Install the dependencies
 
 ```
-virtualenv venv
-source venv/bin/activate
 pip install -U pip
-pip install -r requirements.txt
+pip install -e .
 ```
 
 > On Grid'5000 you can launch this command from any frontend.
@@ -59,8 +57,8 @@ The default configurations are currently defined in the `conf.yaml` file.
 ## Command line interface
 
 ```
-> cli.py 
-Usage: cli.py [OPTIONS] COMMAND [ARGS]...
+> oo
+Usage: oo [OPTIONS] COMMAND [ARGS]...
 
 Options:
   --help  Show this message and exit.
@@ -83,14 +81,14 @@ Commands:
 ## Workflow to run a test case
 
 
-* Deploying and launching the benchmark.
+* Deploying and launching the benchmark (default driver `broker` is defined in the configuration file)
 
 ```
 # default confs.yaml on $PWD will be read
-> cli.py deploy --driver=rabbitmq vagrant
+> oo deploy --driver=broker vagrant
 
 # Launch the one benchmark
-> cli.py test_case_1 --nbr_clients 10 --nbr_servers 2
+> oo test_case_1 --nbr_clients 10 --nbr_servers 2
 ```
 
 > Adapt to the relevant provider (e.g `g5k`)
@@ -102,7 +100,7 @@ Grafana is available on the port 3000 of the control node (check the inventory f
 * Backuping the environment
 
 ```
-> cli.py backup
+> oo backup
 ```
 
 > The files retrieved by this action are located in `current/backup` dir by default.
@@ -111,11 +109,11 @@ Grafana is available on the port 3000 of the control node (check the inventory f
 
 ```
 # Preparing the next run by cleaning the environment
-> cli.py destroy
-> cli.py deploy --driver=rabbitmq vagrant
+> oo destroy
+> oo deploy vagrant
 
 # Next run
-> cli.py test_case_1 --nbr_clients 20 --nbr_servers 2
+> oo test_case_1 --nbr_clients 20 --nbr_servers 2
 ```
 
 > It's possible to force an experimentation dir with `--env mydir`
@@ -130,7 +128,7 @@ Grafana is available on the port 3000 of the control node (check the inventory f
   to run the first test case enabled on the framework run: 
 
 ``` shell
-> cli.py campaign --provider g5k test_case_1
+> oo campaign --provider g5k test_case_1
 ``` 
 
 * Alternatively a campaign can be executed in a _incremental_ mode in which deployments are
@@ -150,7 +148,7 @@ Grafana is available on the port 3000 of the control node (check the inventory f
   instead of the default and execute:  
 
 ``` shell
-> cli.py campaign --incremental --provider g5k test_case_1
+> oo campaign --incremental --provider g5k test_case_1
 ``` 
 
 ## Misc.
