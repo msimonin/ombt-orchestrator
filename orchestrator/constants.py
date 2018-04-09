@@ -34,4 +34,3 @@ ITERATION_PAUSE = 1.0
 
 DRIVER = {'type': 'rabbitmq',
           'mode': 'standalone'}
-
