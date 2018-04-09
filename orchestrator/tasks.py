@@ -12,7 +12,7 @@ from enoslib.infra.enos_g5k.provider import G5k
 from enoslib.infra.enos_vagrant.provider import Enos_vagrant
 from enoslib.task import enostask
 
-from orchestrator.constants import BACKUP_DIR, ANSIBLE_DIR, DRIVER
+from orchestrator.constants import BACKUP_DIR, ANSIBLE_DIR, DRIVER, VERSION
 from orchestrator.qpid_dispatchgen import get_conf, generate, round_robin
 
 if sys.version_info[0] < 3:
@@ -312,8 +312,6 @@ class OmbtController(OmbtAgent):
 
 
 def get_backup_directory(backup_dir):
-    # Create the backup dir for an experiment
-    # NOTE(msimonin): We don't need to identify the backup dir we could use a dedicated env name for that
     cwd = os.getcwd()
     # 'current' directory is constant because it depends on enoslib implementation
     current_directory = path.join(cwd, 'current')
@@ -660,7 +658,7 @@ def generate_shard_conf(shard_index, nbr_clients, nbr_servers, call_type,
     return ombt_confs
 
 
-def test_case(ombt_confs, version, env, backup_dir=BACKUP_DIR, **kwargs):
+def test_case(ombt_confs, version=VERSION, env=None, backup_dir=BACKUP_DIR, **kwargs):
 
     def serialize_ombt_confs(_ombt_confs):
         ansible_ombt_confs = {}
