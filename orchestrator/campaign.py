@@ -1,15 +1,14 @@
-from __future__ import print_function
 from __future__ import generators
+from __future__ import print_function
 
+import itertools
 import json
 import operator
 import string
-from os import path
 import sys
-
 import time
+from os import path
 
-import itertools
 from enoslib.errors import EnosError
 from execo_engine import sweep, ParamSweeper, HashableDict
 
@@ -256,22 +255,31 @@ def campaign(test, provider, force, config, env):
                            save_sweeps=True,
                            name=test)
     t.PROVIDERS[provider](force=force, config=config, env=env_dir)
-    t.inventory()
+    t.inventory(env=env_dir)
     current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
     while current_parameters:
         try:
-            current_parameters.update({'backup_dir': generate_id(current_parameters)})
+            delay = current_parameters.get("delay", None)
+            if delay:
+                traffic = current_parameters.get("traffic")
+                t.emulate(constraints=traffic, env=env_dir, override=delay)
+            backup_directory = generate_id(current_parameters)
+            current_parameters.update({'backup_dir': backup_directory})
+            t.validate(env=env_dir, directory=backup_directory)
             t.prepare(driver=current_parameters['driver'], env=env_dir)
             TEST_CASES[test]['defn'](**current_parameters)
-            t.backup(backup_dir=current_parameters['backup_dir'], env=env_dir)
+            t.backup(backup_dir=backup_directory, env=env_dir)
             sweeper.done(current_parameters)
             dump_parameters(env_dir, current_parameters)
         except (AttributeError, EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
             sweeper.skip(current_parameters)
-            print(error, file=sys.stderr)
-            print(error.args, file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+            # print(traceback.format_exception(None, error, error.__traceback__),
+            # file=sys.stderr, flush=True)
         finally:
-            t.destroy()
+            t.reset(env=env_dir)
+            t.destroy(env=env_dir)
             current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
 
 
@@ -357,7 +365,7 @@ def incremental_campaign(test, provider, force, pause, config, env):
     sweeper = ParamSweeper(persistence_dir=path.join(env_dir, 'sweeps'),
                            sweeps=sweeps, save_sweeps=True, name=test)
     t.PROVIDERS[provider](force=force, config=config, env=env_dir)
-    t.inventory()
+    t.inventory(env=env_dir)
     current_group = sweeper.get_next(TEST_CASES[test].get('filtr'))
     # use uppercase letters to identify groups
     groups = itertools.cycle(string.ascii_uppercase)
@@ -371,19 +379,30 @@ def incremental_campaign(test, provider, force, pause, config, env):
             for fixed_parameters in zip_parameters(current_group, arguments):
                 current_parameters = current_group.copy()
                 current_parameters.update(fixed_parameters)
-                current_parameters.update({'iteration_id': '{}-{}'.format(group_id, next(iterations))})
-                current_parameters.update({'backup_dir': generate_id(current_parameters)})
+                iteration = next(iterations)
+                iteration_id = '{}-{}'.format(group_id, iteration)
+                current_delay = current_parameters.get("delay", None)
+                if current_delay:
+                    current_traffic = current_parameters.get("traffic")
+                    t.emulate(constraints=current_traffic, env=env_dir, override=current_delay)
+                backup_directory = generate_id(current_parameters)
+                t.validate(env=env_dir, directory=backup_directory)
+                current_parameters.update({'iteration_id': iteration_id})
+                current_parameters.update({'backup_dir': backup_directory})
                 # fix number of clients and servers (or topics) to deploy
                 TEST_CASES[test]['fixp'](parameters, current_parameters)
                 TEST_CASES[test]['defn'](**current_parameters)
-                t.backup(backup_dir=current_parameters['backup_dir'], env=env_dir)
+                t.backup(backup_dir=backup_directory, env=env_dir)
                 dump_parameters(env_dir, current_parameters)
+                t.reset(env=env_dir)
                 time.sleep(pause)
             sweeper.done(current_group)
         except (AttributeError, EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
             sweeper.skip(current_group)
-            print(error, file=sys.stderr)
-            print(error.args, file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+            # print(traceback.format_exception(None, error, error.__traceback__),
+            # file=sys.stderr, flush=True)
         finally:
-            t.destroy()
+            t.destroy(env=env_dir)
             current_group = sweeper.get_next(TEST_CASES[test]['filtr'])

@@ -1,8 +1,7 @@
+import itertools
 import os
 import sys
 import uuid
-
-from abc import ABCMeta, abstractmethod
 from os import path
 
 from enoslib.api import run_ansible, generate_inventory, emulate_network, validate_network, reset_network
@@ -12,6 +11,7 @@ from enoslib.infra.enos_vagrant.provider import Enos_vagrant
 from enoslib.task import enostask
 
 from orchestrator.constants import BACKUP_DIR, ANSIBLE_DIR, DRIVER, VERSION
+from orchestrator.ombt import OmbtClient, OmbtController, OmbtServer, RabbitMQConf, QdrConf
 from orchestrator.qpid_dispatchgen import get_conf, generate, round_robin
 
 if sys.version_info[0] < 3:
@@ -32,6 +32,7 @@ def shard_value(value, shards, include_zero=False):
 
     :param value: The value to shard
     :param shards: The number of shards
+    :param include_zero:
     """
     q = [value // shards] * shards
     for i in range(value % shards):
@@ -55,11 +56,12 @@ def shard_list(l, shards, include_empty=False):
 
     :param l: The list to shard
     :param shards: The number of shards
+    :param include_empty:
     """
     s_list = [l[i::shards] for i in range(shards) if i < len(l)]
     if include_empty:
         # We add the missing pieces
-        empty = [[] for i in range(shards - len(s_list))]
+        empty = itertools.repeat([], shards - len(s_list))
         s_list.extend(empty)
     return s_list
 
@@ -131,185 +133,6 @@ def generate_ansible_conf(key, bus_conf, configuration=None):
     return ansible_conf
 
 
-class BusConf(object):
-    """Common class to modelize bus configuration."""
-
-    __metaclass__ = ABCMeta
-
-    def __init__(self, conf):
-        self.conf = conf
-        self.transport = self.get_transport()
-
-    @abstractmethod
-    def get_listener(self, conf):
-        pass
-
-    @abstractmethod
-    def get_transport(self):
-        pass
-
-    def to_dict(self):
-        return self.conf
-
-
-class RabbitMQConf(BusConf):
-
-    def __init__(self, conf):
-        super(RabbitMQConf, self).__init__(conf)
-
-    def get_listener(self, **kwargs):
-        """Returns the listener for rabbitmq.
-        :param kwargs:
-        """
-        return {
-            "machine": self.conf["machine"],
-            "port": self.conf["port"]
-        }
-
-    def get_transport(self):
-        return "rabbit"
-
-
-class QdrConf(BusConf):
-
-    def __init__(self, conf):
-        super(QdrConf, self).__init__(conf)
-        self.transport = "amqp"
-
-    def get_listener(self, **kwargs):
-        """Returns the listener for qdr.
-
-        This is where external client can connect to.
-        The contract is that this kind of listener has the role "normal"
-        and there is exactly one such listener per router
-        :param kwargs:
-        """
-        listeners = self.conf["listeners"]
-        listener = [l for l in listeners if l["role"] == "normal"]
-        return {
-            "machine": listener[0]["host"],
-            "port": listener[0]["port"]
-        }
-
-    def get_transport(self):
-        return "amqp"
-
-
-class OmbtAgent(object):
-    """Modelize an ombt agent."""
-
-    __metaclass__ = ABCMeta
-
-    def __init__(self, **kwargs):
-        # NOTE(msimonin): maybe use __getattr__ at some point
-        self.agent_id = kwargs["agent_id"]
-        self.machine = kwargs["machine"]
-        self.control_agents = kwargs["control_agents"]
-        self.bus_agents = kwargs["bus_agents"]
-        self.timeout = kwargs["timeout"]
-        # generated
-        self.agent_type = self.get_type()
-        # docker
-        self.detach = True
-        self.topic = kwargs["topic"]
-        # calculated attr
-        self.name = self.agent_id
-        # where to log inside the container
-        self.docker_log = "/home/ombt/ombt-data/agent.log"
-        # where to log outside the container (mount)
-        self.log = path.join("/tmp/ombt-data", "%s.log" % self.agent_id)
-        # the command to run
-        self.command = self.get_command()
-
-    def to_dict(self):
-        d = self.__dict__
-        d.update({
-            "control_agents": [a.to_dict() for a in self.control_agents],
-            "bus_agents": [a.to_dict() for a in self.bus_agents],
-        })
-        return d
-
-    @abstractmethod
-    def get_type(self):
-        pass
-
-    def generate_connections(self):
-        connections = {}
-        for agents, agent_type in zip([self.control_agents, self.bus_agents], ["control", "url"]):
-            connection = []
-            for agent in agents:
-                listener = agent.get_listener()
-                transport = agent.transport
-                connection.append("{{ hostvars['%s']['ansible_' + control_network]['ipv4']['address'] }}:%s" %
-                                  (listener["machine"], listener["port"]))
-            connections[agent_type] = "%s://%s" % (transport, ",".join(connection))
-        return "--control %s --url %s" % (connections["control"], connections["url"])
-
-    def get_command(self):
-        """Build the command for the ombt agent.
-        """
-        command = []
-        # command.append("--debug")
-        command.append("--unique")
-        command.append("--timeout %s " % self.timeout)
-        command.append("--topic %s " % self.topic)
-        command.append(self.generate_connections())
-        command.append(self.get_type())
-        # NOTE(msimonin): we don't use verbosity for client/server
-        # if self.verbose:
-        #    command.append("--output %s " % self.docker_log)
-        return command
-
-
-class OmbtClient(OmbtAgent):
-
-    def get_type(self):
-        return "rpc-client"
-
-
-class OmbtServer(OmbtAgent):
-
-    def __init__(self, **kwargs):
-        self.executor = kwargs["executor"]
-        super(OmbtServer, self).__init__(**kwargs)
-
-    def get_command(self):
-        """Build the command for the ombt server.
-        """
-        command = super(OmbtServer, self).get_command()
-        command.append("--executor %s" % self.executor)
-        return command
-
-    def get_type(self):
-        return "rpc-server"
-
-
-class OmbtController(OmbtAgent):
-
-    def __init__(self, **kwargs):
-        self.timeout = kwargs["timeout"]
-        self.call_type = kwargs["call_type"]
-        self.nbr_calls = kwargs["nbr_calls"]
-        self.pause = kwargs["pause"]
-        self.length = kwargs["length"]
-        super(OmbtController, self).__init__(**kwargs)
-
-    def get_type(self):
-        return "controller"
-
-    def get_command(self):
-        """Build the command for the ombt controller.
-        """
-        command = super(OmbtController, self).get_command()
-        # We always dump stat per agents
-        command.append("--output %s" % self.docker_log)
-        command.append(self.call_type)
-        command.append("--calls %s" % self.nbr_calls)
-        command.append("--pause %s" % self.pause)
-        command.append("--length %s" % self.length)
-        return " ".join(command)
-
-
 def get_backup_directory(backup_dir):
     cwd = os.getcwd()
     # 'current' directory is constant because it depends on enoslib implementation
@@ -369,7 +192,8 @@ def generate_bus_conf(config, role_machines, context=""):
 
     Args:
         config(dict): Configuration of the bus (Mostly extracted from the global config)
-        machines(list): machines on which the bus agents will be installed
+        role_machines(list): machines on which the bus agents will be installed
+        context:
 
     Returns:
         List of configurations to use for each machine.
@@ -381,7 +205,7 @@ def generate_bus_conf(config, role_machines, context=""):
         number = config.get("number", len(role_machines))
         # Distributing the rabbitmq instances
         bus_conf = [{
-            "agent_id" : "rabbitmq-%s-%s" % (context, index),
+            "agent_id": "rabbitmq-%s-%s" % (context, index),
             "port": 5672 + index,
             "management_port": 15672 + index,
             "machine": machines[index % len(machines)],
@@ -452,7 +276,7 @@ def test_case_1(**kwargs):
     shards = len(env["control_bus_conf"])
     ombt_confs = {}
     s_clients = shard_value(kwargs["nbr_clients"], shards, include_zero=True)
-    s_servers= shard_value(kwargs["nbr_servers"], shards, include_zero=True)
+    s_servers = shard_value(kwargs["nbr_servers"], shards, include_zero=True)
     for shard_index, s_client, s_server in zip(range(shards), s_clients, s_servers):
         if not s_clients and not s_servers:
             # no need to start a single controller to control nothing
@@ -510,7 +334,7 @@ def test_case_3(**kwargs):
     # We need to replicate the client on every controller
     env = kwargs["env"]
     shards = len(env["control_bus_conf"])
-    s_servers= shard_value(kwargs["nbr_servers"], shards, include_zero=False)
+    s_servers = shard_value(kwargs["nbr_servers"], shards, include_zero=False)
     ombt_confs = {}
     for shard_index, s_server in zip(range(shards), s_servers):
         # kwargs["nbr_clients"] = 1
@@ -579,7 +403,7 @@ def generate_shard_conf(shard_index, nbr_clients, nbr_servers, call_type,
 
     machine_client = env["roles"]["bus"]
     if "bus-client" in env["roles"]:
-       machine_client = env["roles"]["bus-client"]
+        machine_client = env["roles"]["bus-client"]
     machine_client = [m.alias for m in machine_client]
 
     machine_server = env["roles"]["bus"]
@@ -686,6 +510,9 @@ def emulate(**kwargs):
     env = kwargs["env"]
     constraints = kwargs["constraints"]
     network_constraints = env['config']['traffic'].get(constraints)
+    override = kwargs.get("override", None)
+    if override:
+        network_constraints["default_delay"] = override
     roles = env["roles"]
     _inventory = env["inventory"]
     emulate_network(roles, _inventory, network_constraints)
@@ -696,7 +523,9 @@ def validate(**kwargs):
     env = kwargs["env"]
     _inventory = env["inventory"]
     roles = env["roles"]
-    validate_network(roles, _inventory)
+    directory = kwargs["directory"]
+    backup_dir = get_backup_directory(directory)
+    validate_network(roles, _inventory, output_dir=backup_dir)
 
 
 @enostask()
