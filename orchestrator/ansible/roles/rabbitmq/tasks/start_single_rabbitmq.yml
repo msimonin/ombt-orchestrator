@@ -1,0 +1,25 @@
+---
+- name: Install and start docker image rabbitmq
+  docker_container:
+    name: "{{ item.agent_id }}"
+    image: rabbitmq:3-management
+    network_mode: host
+    state: started
+    etc_hosts: "{{ etc_hosts }}"
+    env:
+      RABBITMQ_NODENAME: "{{ item.agent_id }}@{{ ansible_hostname }}"
+      RABBITMQ_LOGS: rabbitmq.log
+      RABBITMQ_ERLANG_COOKIE: "secret_cookie"
+    volumes:
+      - "/etc/rabbitmq/{{ item.agent_id }}.config:/etc/rabbitmq/rabbitmq.config"
+      - "oo-{{ item.agent_id }}-logs:/var/log/rabbitmq"
+  when:
+    - item.machine == inventory_hostname
+
+- name: Wait for the master bus to be started
+  wait_for:
+    host: "{{ hostvars[inventory_hostname]['ansible_' + control_network]['ipv4']['address'] }}"
+    port: "{{ item.port }}"
+  when:
+    - item.machine == inventory_hostname
+
