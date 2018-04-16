@@ -1,0 +1,17 @@
+# Beware that this image has to be up-to-date
+# master tag can be anything ...
+FROM msimonin/qdrouterd:DISPATCH-957
+
+MAINTAINER "matthieu.simonin@inria.fr"
+
+WORKDIR /opt/qpid-dispatch/console/stand-alone
+
+# in the latest we need to npm install all the deps
+RUN apt update && apt install -y curl
+RUN curl -sL https://deb.nodesource.com/setup_8.x | bash -
+RUN apt update && apt install -y nodejs
+RUN npm install
+
+EXPOSE 8000
+CMD ["python","-m", "SimpleHTTPServer"]
+
