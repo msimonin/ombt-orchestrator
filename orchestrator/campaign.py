@@ -1,33 +1,39 @@
 from __future__ import generators
-from __future__ import print_function
 
+import functools
 import itertools
 import json
 import operator
 import string
-import sys
 import time
+import traceback
 from os import path
 
+import execo_engine
 from enoslib.errors import EnosError
-from execo_engine import sweep, ParamSweeper, HashableDict
+from execo_engine import ParamSweeper, HashableDict
 
 import orchestrator.tasks as t
 
 
-def filter_1(parameters):
-    return filter_params(parameters, condition=lambda x: x['nbr_servers'] <= x['nbr_clients'])
+def filter_1(condition, parameters):
+    if not condition:
+        condition = (lambda x: x["nbr_servers"] <= x["nbr_clients"])
+    return filter_params(parameters, condition=condition)
 
 
-def filter_2(parameters):
-    return filter_params(parameters, key='nbr_topics')
+def filter_2(condition, parameters):
+    # condition is not use but it is required because of functools.partial in campaign
+    return filter_params(parameters, key="nbr_topics")
 
 
-def filter_3(parameters):
-    return filter_params(parameters, key='nbr_servers')
+def filter_3(condition, parameters):
+    # condition is not use but it is required because of functools.partial in campaign
+    return filter_params(parameters, key="nbr_servers")
 
 
-def filter_params(parameters, key='nbr_clients', condition=lambda unused: True):
+def filter_params(parameters, key="nbr_clients",
+                  condition=lambda unused: True):
     filtered_parameters = (p for p in parameters if condition(p))
     return sort_parameters(filtered_parameters, key)
 
@@ -99,7 +105,7 @@ def get_current_values(params, current, keys):
     states = [current.get(key) for key in keys]
     plists = zip(*plists)
     index = plists.index(tuple(states))
-    return ([0] * len(states), states) if index == 0 else (list(plists[index-1]), states)
+    return ([0] * len(states), states) if index == 0 else (list(plists[index - 1]), states)
 
 
 def fix_1(parameters, current_parameters):
@@ -157,7 +163,8 @@ def fix_2(parameters, current_parameters):
     topics_list = parameters.get('nbr_topics')
     max_topics = max(topics_list)
     all_topics = t.get_topics(max_topics)
-    [previous_nbr_topics], [nbr_topics] = get_current_values(parameters, current_parameters, ['nbr_topics'])
+    [previous_nbr_topics], [nbr_topics] = get_current_values(
+        parameters, current_parameters, ['nbr_topics'])
     current_topics = all_topics[previous_nbr_topics:nbr_topics]
     current_parameters.update({'topics': current_topics})
     current_parameters.update({'nbr_clients': len(current_topics)})
@@ -180,7 +187,8 @@ def fix_3(parameters, current_parameters):
     {'nbr_clients': 0, 'nbr_servers': 1, 'topics': ['topic-0']}
     """
 
-    [previous_servers], [current_servers] = get_current_values(parameters, current_parameters, ['nbr_servers'])
+    [previous_servers], [current_servers] = get_current_values(
+        parameters, current_parameters, ['nbr_servers'])
     if previous_servers:
         nbr_clients = 0
     else:
@@ -240,23 +248,30 @@ def generate_id(params):
         :param params: JSON parameters of an execution.
         :return: A unique ID.
         """
+
     def replace(s):
         return str(s).replace("/", "_sl_").replace(":", "_sc_")
 
-    return '-'.join(["%s__%s" % (replace(k), replace(v)) for k, v in sorted(params.items())])
+    return "-".join(["%s__%s" % (replace(k), replace(v))
+                     for k, v in sorted(params.items())])
 
 
-def campaign(test, provider, force, config, env):
+def get_filter_function(name, flag):
+    filter_function = TEST_CASES[name]["filtr"]
+    predicate = (lambda x: True) if flag else None
+    return functools.partial(filter_function, predicate)
+
+
+def campaign(test, provider, unfiltered, force, config, env):
     parameters = config['campaign'][test]
-    sweeps = sweep(parameters)
+    sweeps = execo_engine.sweep(parameters)
     env_dir = env if env else test
     sweeper = ParamSweeper(persistence_dir=path.join(env_dir, "sweeps"),
-                           sweeps=sweeps,
-                           save_sweeps=True,
-                           name=test)
+                           sweeps=sweeps, save_sweeps=True, name=test)
     t.PROVIDERS[provider](force=force, config=config, env=env_dir)
     t.inventory(env=env_dir)
-    current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
+    filter_function = get_filter_function(test, unfiltered)
+    current_parameters = sweeper.get_next(filter_function)
     while current_parameters:
         try:
             delay = current_parameters.get("delay", None)
@@ -273,14 +288,11 @@ def campaign(test, provider, force, config, env):
             dump_parameters(env_dir, current_parameters)
         except (AttributeError, EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
             sweeper.skip(current_parameters)
-            import traceback
             traceback.print_exc()
-            # print(traceback.format_exception(None, error, error.__traceback__),
-            # file=sys.stderr, flush=True)
         finally:
             t.reset(env=env_dir)
             t.destroy(env=env_dir)
-            current_parameters = sweeper.get_next(TEST_CASES[test]['filtr'])
+            current_parameters = sweeper.get_next(filter_function)
 
 
 def zip_parameters(parameters, arguments):
@@ -341,20 +353,21 @@ def zip_parameters(parameters, arguments):
 def sweep_with_lists(parameters, arguments):
     # pack arguments to zip in lists to avoid sweep over them
     parameters = {k: ([v] if k in arguments else v) for k, v in parameters.items()}
-    sweeps = sweep(parameters)
+    sweeps = execo_engine.sweep(parameters)
     # transform list to immutable object
     sweeps = ({k: (tuple(v) if k in arguments else v) for k, v in l.items()} for l in sweeps)
     # transform dictionaries to hashable objects
     return [HashableDict(d) for d in sweeps]
 
 
-def incremental_campaign(test, provider, force, pause, config, env):
+def incremental_campaign(test, provider, pause, unfiltered, force, config, env):
     """Execute a test incrementally (reusing deployment).
 
     :param test: name of the test to execute
     :param provider: target infrastructure
-    :param force: override deployment configuration
+    :param unfiltered:
     :param pause: break between iterations in seconds
+    :param force: override deployment configuration
     :param config: orchestration configuration
     :param env: directory containing the environment configuration
     """
@@ -366,7 +379,8 @@ def incremental_campaign(test, provider, force, pause, config, env):
                            sweeps=sweeps, save_sweeps=True, name=test)
     t.PROVIDERS[provider](force=force, config=config, env=env_dir)
     t.inventory(env=env_dir)
-    current_group = sweeper.get_next(TEST_CASES[test].get('filtr'))
+    filter_function = get_filter_function(test, unfiltered)
+    current_group = sweeper.get_next(filter_function)
     # use uppercase letters to identify groups
     groups = itertools.cycle(string.ascii_uppercase)
     while current_group:
@@ -384,7 +398,8 @@ def incremental_campaign(test, provider, force, pause, config, env):
                 current_delay = current_parameters.get("delay", None)
                 if current_delay:
                     current_traffic = current_parameters.get("traffic")
-                    t.emulate(constraints=current_traffic, env=env_dir, override=current_delay)
+                    t.emulate(constraints=current_traffic, env=env_dir,
+                              override=current_delay)
                 backup_directory = generate_id(current_parameters)
                 t.validate(env=env_dir, directory=backup_directory)
                 current_parameters.update({'iteration_id': iteration_id})
@@ -399,10 +414,7 @@ def incremental_campaign(test, provider, force, pause, config, env):
             sweeper.done(current_group)
         except (AttributeError, EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
             sweeper.skip(current_group)
-            import traceback
             traceback.print_exc()
-            # print(traceback.format_exception(None, error, error.__traceback__),
-            # file=sys.stderr, flush=True)
         finally:
             t.destroy(env=env_dir)
-            current_group = sweeper.get_next(TEST_CASES[test]['filtr'])
+            current_group = sweeper.get_next(filter_function)

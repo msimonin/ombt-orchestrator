@@ -323,33 +323,38 @@ def test_case_4(nbr_clients, nbr_servers, nbr_topics, nbr_calls, pause, timeout,
 @click.option("--provider",
               default="vagrant",
               help="target deployment infrastructure")
-@click.option("--force",
-              is_flag=True,
-              help="force initial redeployment")
 @click.option("--incremental",
               is_flag=True,
               help="reuse of resources in next iteration")
 @click.option("--pause",
               default=ITERATION_PAUSE,
               help="break between iterations in seconds (only incremental)")
+@click.option("--unfiltered",
+              is_flag=True,
+              help="Sweep configuration values without filter")
+@click.option("--force",
+              is_flag=True,
+              help="force initial redeployment")
 @click.option("--conf",
               default=CONF,
               help="alternative configuration file")
 @click.option("--env",
               default=None,
               help="alternative environment directory")
-def campaign(test, provider, force, incremental, pause, conf, env):
+def campaign(test, provider, incremental, pause, unfiltered, force, conf, env):
     config = load_config(conf)
     if incremental:
         c.incremental_campaign(test=test,
                                provider=provider,
-                               force=force,
                                pause=pause,
+                               unfiltered=unfiltered,
+                               force=force,
                                config=config,
                                env=env)
     else:
         c.campaign(test=test,
                    provider=provider,
+                   unfiltered=unfiltered,
                    force=force,
                    config=config,
                    env=env)
