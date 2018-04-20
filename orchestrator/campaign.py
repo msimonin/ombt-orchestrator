@@ -81,7 +81,7 @@ def sort_parameters(parameters, key):
     :param key:
     :return:
     """
-    return sorted(parameters, key=operator.itemgetter('driver', 'call_type', key))
+    return sorted(parameters, key=operator.itemgetter("driver", "call_type", key))
 
 
 def get_current_values(params, current, keys):
@@ -103,9 +103,9 @@ def get_current_values(params, current, keys):
     """
     plists = [params.get(key) for key in keys]
     states = [current.get(key) for key in keys]
-    plists = zip(*plists)
+    plists = list(zip(*plists))
     index = plists.index(tuple(states))
-    return ([0] * len(states), states) if index == 0 else (list(plists[index - 1]), states)
+    return ([0] * len(states), states) if index == 0 else (plists[index - 1], states)
 
 
 def fix_1(parameters, current_parameters):
@@ -139,10 +139,10 @@ def fix_1(parameters, current_parameters):
     """
     # Note(msimonin): We may want to extend the get_current_value to all 'zip' elements
     [p_clients, p_servers], [c_clients, c_servers] = get_current_values(
-        parameters, current_parameters, ['nbr_clients', 'nbr_servers'])
-    current_parameters.update({'topics': ['topic-0']})
-    current_parameters.update({'nbr_clients': c_clients - p_clients})
-    current_parameters.update({'nbr_servers': c_servers - p_servers})
+        parameters, current_parameters, ["nbr_clients", "nbr_servers"])
+    current_parameters.update({"topics": ["topic-0"]})
+    current_parameters.update({"nbr_clients": c_clients - p_clients})
+    current_parameters.update({"nbr_servers": c_servers - p_servers})
 
 
 def fix_2(parameters, current_parameters):
@@ -160,15 +160,15 @@ def fix_2(parameters, current_parameters):
     >>> pprint.pprint(current_parameters)
     {'nbr_clients': 1, 'nbr_servers': 1, 'nbr_topics': 2, 'topics': ['topic-1']}
     """
-    topics_list = parameters.get('nbr_topics')
+    topics_list = parameters["nbr_topics"]
     max_topics = max(topics_list)
     all_topics = t.get_topics(max_topics)
     [previous_nbr_topics], [nbr_topics] = get_current_values(
-        parameters, current_parameters, ['nbr_topics'])
+        parameters, current_parameters, ["nbr_topics"])
     current_topics = all_topics[previous_nbr_topics:nbr_topics]
-    current_parameters.update({'topics': current_topics})
-    current_parameters.update({'nbr_clients': len(current_topics)})
-    current_parameters.update({'nbr_servers': len(current_topics)})
+    current_parameters.update({"topics": current_topics})
+    current_parameters.update({"nbr_clients": len(current_topics)})
+    current_parameters.update({"nbr_servers": len(current_topics)})
 
 
 def fix_3(parameters, current_parameters):
@@ -188,36 +188,39 @@ def fix_3(parameters, current_parameters):
     """
 
     [previous_servers], [current_servers] = get_current_values(
-        parameters, current_parameters, ['nbr_servers'])
+        parameters, current_parameters, ["nbr_servers"])
     if previous_servers:
         nbr_clients = 0
+
     else:
         nbr_clients = 1
-    current_parameters.update({'topics': ['topic-0']})
-    current_parameters.update({'nbr_clients': nbr_clients})
-    current_parameters.update({'nbr_servers': current_servers - previous_servers})
+
+    current_parameters.update({"topics": ["topic-0"]})
+    current_parameters.update({"nbr_clients": nbr_clients})
+    current_parameters.update({"nbr_servers": current_servers - previous_servers})
 
 
 TEST_CASES = {
-    'test_case_1': {'defn': t.test_case_1,
-                    'filtr': filter_1,
-                    'fixp': fix_1,
-                    'key': 'nbr_clients',
-                    'zip': ['nbr_servers', 'nbr_clients', 'nbr_calls', 'pause']},
-    'test_case_2': {'defn': t.test_case_2,
-                    'filtr': filter_2,
-                    'fixp': fix_2,
-                    'key': 'nbr_topics',
-                    'zip': ['nbr_topics', 'nbr_calls', 'pause']},
-    'test_case_3': {'defn': t.test_case_3,
-                    'filtr': filter_3,
-                    'fixp': fix_3,
-                    'zip': ['nbr_servers', 'nbr_calls', 'pause'],
-                    'key': 'nbr_servers'},
+    "test_case_1": {"defn": t.test_case_1,
+                    "filtr": filter_1,
+                    "fixp": fix_1,
+                    "key": "nbr_clients",
+                    "zip": ["nbr_servers", "nbr_clients",
+                            "nbr_calls", "pause"]},
+    "test_case_2": {"defn": t.test_case_2,
+                    "filtr": filter_2,
+                    "fixp": fix_2,
+                    "key": "nbr_topics",
+                    "zip": ["nbr_topics", "nbr_calls", "pause"]},
+    "test_case_3": {"defn": t.test_case_3,
+                    "filtr": filter_3,
+                    "fixp": fix_3,
+                    "zip": ["nbr_servers", "nbr_calls", "pause"],
+                    "key": "nbr_servers"},
     # TODO complete fixp and zip values
-    'test_case_4': {'defn': t.test_case_4,
-                    'filtr': filter_2,  # same as tc2
-                    'key': 'nbr_topics'}
+    "test_case_4": {"defn": t.test_case_4,
+                    "filtr": filter_2,  # same as tc2
+                    "key": "nbr_topics"}
 }
 
 
@@ -230,15 +233,17 @@ def dump_parameters(directory, params):
     :param directory: working directory
     :param params: JSON parameters to dump
     """
-    json_params = path.join(directory, 'params.json')
+    json_params = path.join(directory, "params.json")
     if not path.exists(json_params):
-        with open(json_params, 'w') as f:
+        with open(json_params, "w") as f:
             json.dump([], f)
     # Add current parameters
-    with open(json_params, 'r') as f:
+
+    with open(json_params, "r") as f:
         all_params = json.load(f)
+
     all_params.append(params)
-    with open(json_params, 'w') as f:
+    with open(json_params, "w") as f:
         json.dump(all_params, f)
 
 
@@ -263,7 +268,7 @@ def get_filter_function(name, flag):
 
 
 def campaign(test, provider, unfiltered, force, config, env):
-    parameters = config['campaign'][test]
+    parameters = config["campaign"][test]
     sweeps = execo_engine.sweep(parameters)
     env_dir = env if env else test
     sweeper = ParamSweeper(persistence_dir=path.join(env_dir, "sweeps"),
@@ -276,19 +281,23 @@ def campaign(test, provider, unfiltered, force, config, env):
         try:
             delay = current_parameters.get("delay", None)
             if delay:
-                traffic = current_parameters.get("traffic")
+                traffic = current_parameters["traffic"]
                 t.emulate(constraints=traffic, env=env_dir, override=delay)
+
             backup_directory = generate_id(current_parameters)
-            current_parameters.update({'backup_dir': backup_directory})
+            current_parameters.update({"backup_dir": backup_directory})
             t.validate(env=env_dir, directory=backup_directory)
-            t.prepare(driver=current_parameters['driver'], env=env_dir)
-            TEST_CASES[test]['defn'](**current_parameters)
+            t.prepare(driver=current_parameters["driver"], env=env_dir)
+            TEST_CASES[test]["defn"](**current_parameters)
             t.backup(backup_dir=backup_directory, env=env_dir)
             sweeper.done(current_parameters)
             dump_parameters(env_dir, current_parameters)
-        except (AttributeError, EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
+
+        except (AttributeError, EnosError, RuntimeError,
+                ValueError, KeyError, OSError) as error:
             sweeper.skip(current_parameters)
             traceback.print_exc()
+
         finally:
             t.reset(env=env_dir)
             t.destroy(env=env_dir)
@@ -352,10 +361,12 @@ def zip_parameters(parameters, arguments):
 
 def sweep_with_lists(parameters, arguments):
     # pack arguments to zip in lists to avoid sweep over them
-    parameters = {k: ([v] if k in arguments else v) for k, v in parameters.items()}
+    parameters = {k: ([v] if k in arguments else v)
+                  for k, v in parameters.items()}
     sweeps = execo_engine.sweep(parameters)
     # transform list to immutable object
-    sweeps = ({k: (tuple(v) if k in arguments else v) for k, v in l.items()} for l in sweeps)
+    sweeps = ({k: (tuple(v) if k in arguments else v)
+               for k, v in l.items()} for l in sweeps)
     # transform dictionaries to hashable objects
     return [HashableDict(d) for d in sweeps]
 
@@ -365,17 +376,17 @@ def incremental_campaign(test, provider, pause, unfiltered, force, config, env):
 
     :param test: name of the test to execute
     :param provider: target infrastructure
-    :param unfiltered:
+    :param unfiltered: flag to set or avoid filter for sweeps
     :param pause: break between iterations in seconds
     :param force: override deployment configuration
     :param config: orchestration configuration
     :param env: directory containing the environment configuration
     """
-    parameters = config['campaign'][test]
-    arguments = TEST_CASES[test]['zip']
+    parameters = config["campaign"][test]
+    arguments = TEST_CASES[test]["zip"]
     sweeps = sweep_with_lists(parameters, arguments)
-    env_dir = env if env else '{}-incremental'.format(test)
-    sweeper = ParamSweeper(persistence_dir=path.join(env_dir, 'sweeps'),
+    env_dir = env if env else "{}-incremental".format(test)
+    sweeper = ParamSweeper(persistence_dir=path.join(env_dir, "sweeps"),
                            sweeps=sweeps, save_sweeps=True, name=test)
     t.PROVIDERS[provider](force=force, config=config, env=env_dir)
     t.inventory(env=env_dir)
@@ -388,33 +399,37 @@ def incremental_campaign(test, provider, pause, unfiltered, force, config, env):
         # use numbers (incremental) to identify iterations by group
         iterations = itertools.count()
         try:
-            current_driver = current_group.get('driver')
+            current_driver = current_group["driver"]
             t.prepare(driver=current_driver, env=env_dir)
             for fixed_parameters in zip_parameters(current_group, arguments):
                 current_parameters = current_group.copy()
                 current_parameters.update(fixed_parameters)
                 iteration = next(iterations)
-                iteration_id = '{}-{}'.format(group_id, iteration)
+                iteration_id = "{}-{}".format(group_id, iteration)
                 current_delay = current_parameters.get("delay", None)
                 if current_delay:
-                    current_traffic = current_parameters.get("traffic")
+                    current_traffic = current_parameters["traffic"]
                     t.emulate(constraints=current_traffic, env=env_dir,
                               override=current_delay)
+
                 backup_directory = generate_id(current_parameters)
                 t.validate(env=env_dir, directory=backup_directory)
-                current_parameters.update({'iteration_id': iteration_id})
-                current_parameters.update({'backup_dir': backup_directory})
+                current_parameters.update({"iteration_id": iteration_id})
+                current_parameters.update({"backup_dir": backup_directory})
                 # fix number of clients and servers (or topics) to deploy
-                TEST_CASES[test]['fixp'](parameters, current_parameters)
-                TEST_CASES[test]['defn'](**current_parameters)
+                TEST_CASES[test]["fixp"](parameters, current_parameters)
+                TEST_CASES[test]["defn"](**current_parameters)
                 t.backup(backup_dir=backup_directory, env=env_dir)
                 dump_parameters(env_dir, current_parameters)
                 t.reset(env=env_dir)
                 time.sleep(pause)
             sweeper.done(current_group)
-        except (AttributeError, EnosError, RuntimeError, ValueError, KeyError, OSError) as error:
+
+        except (AttributeError, EnosError, RuntimeError,
+                ValueError, KeyError, OSError) as error:
             sweeper.skip(current_group)
             traceback.print_exc()
+
         finally:
             t.destroy(env=env_dir)
             current_group = sweeper.get_next(filter_function)

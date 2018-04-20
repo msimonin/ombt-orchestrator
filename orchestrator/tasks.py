@@ -4,18 +4,22 @@ import sys
 import uuid
 from os import path
 
-from enoslib.api import run_ansible, generate_inventory, emulate_network, validate_network, reset_network
+from enoslib.api import run_ansible, generate_inventory, emulate_network, \
+    validate_network, reset_network
 from enoslib.infra.enos_chameleonkvm.provider import Chameleonkvm
 from enoslib.infra.enos_g5k.provider import G5k
 from enoslib.infra.enos_vagrant.provider import Enos_vagrant
 from enoslib.task import enostask
 
 from orchestrator.constants import BACKUP_DIR, ANSIBLE_DIR, DRIVER, VERSION
-from orchestrator.ombt import OmbtClient, OmbtController, OmbtServer, RabbitMQConf, QdrConf
+from orchestrator.ombt import OmbtClient, OmbtController, OmbtServer, \
+    RabbitMQConf, QdrConf
 from orchestrator.qpid_dispatchgen import get_conf, generate, round_robin
 
 if sys.version_info[0] < 3:
     import pathlib2 as pathlib
+else:
+    import pathlib
 
 
 def shard_value(value, shards, include_zero=False):
@@ -37,8 +41,10 @@ def shard_value(value, shards, include_zero=False):
     q = [value // shards] * shards
     for i in range(value % shards):
         q[i] = q[i] + 1
+
     if not include_zero:
         q = [qq for qq in q if qq != 0]
+
     return q
 
 
@@ -63,6 +69,7 @@ def shard_list(l, shards, include_empty=False):
         # We add the missing pieces
         empty = itertools.repeat([], shards - len(s_list))
         s_list.extend(empty)
+
     return s_list
 
 
@@ -89,12 +96,15 @@ def merge_ombt_confs(ombt_confs, ombt_conf):
         if agent_type not in ombt_confs:
             ombt_confs.update({agent_type: machines})
             continue
+
         confs = ombt_confs[agent_type]
         for machine, conf in machines.items():
             if machine not in confs:
                 confs.update({machine: conf})
                 continue
+
             confs[machine].extend(conf)
+
     return ombt_confs
 
 
@@ -121,8 +131,9 @@ def get_topics(number):
     :return: A list of topic names.
     """
     length = len(str(number)) if number % 10 else len(str(number)) - 1
-    sequence = ('{number:0{width}}'.format(number=n, width=length) for n in range(number))
-    return ['topic-{}'.format(e) for e in sequence]
+    sequence = ("{number:0{width}}".format(number=n, width=length)
+                for n in range(number))
+    return ["topic-{}".format(e) for e in sequence]
 
 
 def generate_ansible_conf(key, bus_conf, configuration=None):
@@ -130,16 +141,16 @@ def generate_ansible_conf(key, bus_conf, configuration=None):
     # inject the bus configuration taken from the configuration
     if configuration:
         ansible_conf.update(configuration)
+
     return ansible_conf
 
 
 def get_backup_directory(backup_dir):
     cwd = os.getcwd()
-    # 'current' directory is constant because it depends on enoslib implementation
-    current_directory = path.join(cwd, 'current')
+    # current directory name is constant because of enoslib implementation
+    current_directory = path.join(cwd, "current")
     backup_dir = path.join(current_directory, backup_dir)
     pathlib.Path(backup_dir).mkdir(parents=True, exist_ok=True)
-    # os.system("mkdir -p %s" % backup_dir)
     return backup_dir
 
 
@@ -148,19 +159,19 @@ def get_backup_directory(backup_dir):
 @enostask(new=True)
 def g5k(**kwargs):
     # Here **kwargs strictly means (force, config, env), no more no less
-    init_provider(G5k, 'g5k', **kwargs)
+    init_provider(G5k, "g5k", **kwargs)
 
 
 @enostask(new=True)
 def vagrant(**kwargs):
     # Here **kwargs strictly means (force, config, env), no more no less
-    init_provider(Enos_vagrant, 'vagrant', **kwargs)
+    init_provider(Enos_vagrant, "vagrant", **kwargs)
 
 
 @enostask(new=True)
 def chameleon(**kwargs):
     # Here **kwargs strictly means (force, config, env), no more no less
-    init_provider(Chameleonkvm, 'chameleon', **kwargs)
+    init_provider(Chameleonkvm, "chameleon", **kwargs)
 
 
 def init_provider(provider, name, force, config, env):
@@ -208,23 +219,28 @@ def generate_bus_conf(config, role_machines, context=""):
             "agent_id": "rabbitmq-%s-%s" % (context, index),
             "port": 5672 + index,
             "management_port": 15672 + index,
-            "machine": machines[index % len(machines)],
+            "machine": machines[index % len(machines)]
         } for index in range(number)]
         # We inject the cluster nodes
         cluster_nodes = []
         if config["mode"] == "cluster":
             cluster_nodes = [(b["agent_id"], b["machine"]) for b in bus_conf]
+
         for b in bus_conf:
             b["cluster_nodes"] = cluster_nodes
+
         # saving the conf object
         bus_conf = [RabbitMQConf(c) for c in bus_conf]
+
     elif config["type"] == "qdr":
         # Building the graph of routers
         graph = generate(config["topology"], *config["args"])
         bus_conf = get_conf(graph, machines, round_robin)
         bus_conf = [QdrConf(c) for c in bus_conf.values()]
+
     else:
         raise TypeError("Unknown broker chosen")
+
     return bus_conf
 
 
@@ -233,7 +249,7 @@ def prepare(**kwargs):
     env = kwargs["env"]
     driver = kwargs["driver"]
     # Generate inventory
-    config = env['config']['drivers'].get(driver, DRIVER)
+    config = env["config"]["drivers"].get(driver, DRIVER)
     extra_vars = {
         "registry": env["config"]["registry"],
         "broker": config["type"]
@@ -249,16 +265,21 @@ def prepare(**kwargs):
 
     # NOTE(msimonin): still hardcoding the control_bus configuration for now
     control_config = DRIVER
-    control_bus_conf = generate_bus_conf(control_config, env["roles"]["control-bus"], context="control-bus")
+    control_bus_conf = generate_bus_conf(control_config,
+                                         env["roles"]["control-bus"],
+                                         context="control-bus")
     env["control_bus_conf"] = control_bus_conf
-    ansible_control_bus_conf = generate_ansible_conf("control_bus_conf", control_bus_conf, config)
+    ansible_control_bus_conf = generate_ansible_conf("control_bus_conf",
+                                                     control_bus_conf, config)
 
     extra_vars.update({"enos_action": "deploy"})
     extra_vars.update(ansible_bus_conf)
     extra_vars.update(ansible_control_bus_conf)
 
-    run_ansible([path.join(ANSIBLE_DIR, "site.yml")], env["inventory"], extra_vars=extra_vars)
-    env["broker"] = config['type']
+    run_ansible([path.join(ANSIBLE_DIR, "site.yml")],
+                env["inventory"], extra_vars=extra_vars)
+    # broker is a ansible-required variable
+    env["broker"] = config["type"]
 
 
 @enostask()
@@ -281,6 +302,7 @@ def test_case_1(**kwargs):
         if not s_clients and not s_servers:
             # no need to start a single controller to control nothing
             continue
+
         # NOTE(msimonin): one corner case would be if s_clients = 0
         # and s_servers = 0. This would prevent ombt-controller to function normally
         # but is unlikely to happen since nbr_clients >= nbr_servers
@@ -312,9 +334,9 @@ def test_case_2(**kwargs):
     s_topics = shard_list(topics, shards, include_empty=False)
     ombt_confs = {}
     for shard_index, s_topic in zip(range(shards), s_topics):
-        kwargs['nbr_clients'] = len(s_topic)
-        kwargs['nbr_servers'] = len(s_topic)
-        kwargs['topics'] = s_topic
+        kwargs["nbr_clients"] = len(s_topic)
+        kwargs["nbr_servers"] = len(s_topic)
+        kwargs["topics"] = s_topic
         ombt_conf = generate_shard_conf(shard_index, **kwargs)
         merge_ombt_confs(ombt_confs, ombt_conf)
 
@@ -329,7 +351,7 @@ def test_case_3(**kwargs):
     if "topics" not in kwargs:
         kwargs["topics"] = get_topics(1)
 
-    kwargs['call_type'] = 'rpc-fanout'
+    kwargs["call_type"] = "rpc-fanout"
     # Sharding
     # We need to replicate the client on every controller
     env = kwargs["env"]
@@ -366,9 +388,9 @@ def test_case_4(**kwargs):
     s_topics = shard_list(topics, shards, include_empty=False)
     ombt_confs = {}
     for shard_index, s_topic in zip(range(shards), s_topics):
-        kwargs['nbr_clients'] = nbr_clients * len(s_topic)
-        kwargs['nbr_servers'] = nbr_servers * len(s_topic)
-        kwargs['topics'] = s_topic
+        kwargs["nbr_clients"] = nbr_clients * len(s_topic)
+        kwargs["nbr_servers"] = nbr_servers * len(s_topic)
+        kwargs["topics"] = s_topic
         ombt_conf = generate_shard_conf(shard_index, **kwargs)
         merge_ombt_confs(ombt_confs, ombt_conf)
 
@@ -400,17 +422,16 @@ def generate_shard_conf(shard_index, nbr_clients, nbr_servers, call_type,
 
     bus_conf = env["bus_conf"]
     control_bus_conf = [env["control_bus_conf"][shard_index]]
-
     machine_client = env["roles"]["bus"]
     if "bus-client" in env["roles"]:
         machine_client = env["roles"]["bus-client"]
-    machine_client = [m.alias for m in machine_client]
 
+    machine_client = [m.alias for m in machine_client]
     machine_server = env["roles"]["bus"]
     if "bus-server" in env["roles"]:
         machine_server = env["roles"]["bus-server"]
-    machine_server = [m.alias for m in machine_server]
 
+    machine_server = [m.alias for m in machine_server]
     # description template of agents
     descs = [
         {
@@ -454,7 +475,6 @@ def generate_shard_conf(shard_index, nbr_clients, nbr_servers, call_type,
     for agent_desc in descs:
         agent_type = agent_desc["agent_type"]
         machines = agent_desc["machines"]
-
         ombt_confs.setdefault(agent_type, {})
         for agent_index in range(agent_desc["number"]):
             # Taking into account a shard index has several benefit:
@@ -468,7 +488,8 @@ def generate_shard_conf(shard_index, nbr_clients, nbr_servers, call_type,
             machine = machines[idx % len(machines)].alias
             # choose a bus agent
             bus_agent = agent_desc["bus_agents"][idx % len(agent_desc["bus_agents"])]
-            agent_id = "%s-%s-%s-%s-%s" % (agent_type, agent_index, topic, iteration_id, shard_index)
+            agent_id = "%s-%s-%s-%s-%s" % (agent_type, agent_index,
+                                           topic, iteration_id, shard_index)
             control_agent = control_bus_conf[agent_index % len(control_bus_conf)]
             kwargs = agent_desc["kwargs"]
             kwargs.update({"agent_id": agent_id,
@@ -478,6 +499,7 @@ def generate_shard_conf(shard_index, nbr_clients, nbr_servers, call_type,
                            "control_agents": [control_agent]})
             agent_conf = agent_desc["klass"](**kwargs)
             ombt_confs[agent_type].setdefault(machine, []).append(agent_conf)
+
     return ombt_confs
 
 
@@ -489,7 +511,8 @@ def test_case(ombt_confs, version=VERSION, env=None, backup_dir=BACKUP_DIR, **kw
             ansible_ombt_confs.setdefault(agent_type, {})
 
             for machine, confs in machines.items():
-                ansible_ombt_confs[agent_type].update({machine: [c.to_dict() for c in confs]})
+                ansible_ombt_confs[agent_type].update(
+                    {machine: [c.to_dict() for c in confs]})
 
         return ansible_ombt_confs
 
@@ -502,17 +525,19 @@ def test_case(ombt_confs, version=VERSION, env=None, backup_dir=BACKUP_DIR, **kw
         "ombt_confs": serialize_ombt_confs(ombt_confs)
     }
     
-    run_ansible([path.join(ANSIBLE_DIR, "test_case.yml")], env["inventory"], extra_vars=extra_vars)
+    run_ansible([path.join(ANSIBLE_DIR, "test_case.yml")],
+                env["inventory"], extra_vars=extra_vars)
 
 
 @enostask()
 def emulate(**kwargs):
     env = kwargs["env"]
     constraints = kwargs["constraints"]
-    network_constraints = env['config']['traffic'].get(constraints)
+    network_constraints = env["config"]["traffic"].get(constraints)
     override = kwargs.get("override", None)
     if override:
         network_constraints["default_delay"] = override
+
     roles = env["roles"]
     _inventory = env["inventory"]
     emulate_network(roles, _inventory, network_constraints)
@@ -550,11 +575,12 @@ def backup(**kwargs):
     }
 
     ansible_bus_conf = generate_ansible_conf("bus_conf", env.get("bus_conf"))
-    ansible_control_bus_conf = generate_ansible_conf("control_bus_conf", env.get("control_bus_conf"))
+    ansible_control_bus_conf = generate_ansible_conf("control_bus_conf",
+                                                     env.get("control_bus_conf"))
     extra_vars.update(ansible_bus_conf)
     extra_vars.update(ansible_control_bus_conf)
-
-    run_ansible([path.join(ANSIBLE_DIR, "site.yml")], env["inventory"], extra_vars=extra_vars)
+    run_ansible([path.join(ANSIBLE_DIR, "site.yml")],
+                env["inventory"], extra_vars=extra_vars)
 
 
 @enostask()
@@ -569,9 +595,11 @@ def destroy(**kwargs):
     }
 
     ansible_bus_conf = generate_ansible_conf("bus_conf", env.get("bus_conf"))
-    ansible_control_bus_conf = generate_ansible_conf("control_bus_conf", env.get("control_bus_conf"))
+    ansible_control_bus_conf = generate_ansible_conf("control_bus_conf",
+                                                     env.get("control_bus_conf"))
     extra_vars.update(ansible_bus_conf)
     extra_vars.update(ansible_control_bus_conf)
-
-    run_ansible([path.join(ANSIBLE_DIR, "site.yml")], env["inventory"], extra_vars=extra_vars)
-    run_ansible([path.join(ANSIBLE_DIR, "ombt.yml")], env["inventory"], extra_vars=extra_vars)
+    run_ansible([path.join(ANSIBLE_DIR, "site.yml")],
+                env["inventory"], extra_vars=extra_vars)
+    run_ansible([path.join(ANSIBLE_DIR, "ombt.yml")],
+                env["inventory"], extra_vars=extra_vars)

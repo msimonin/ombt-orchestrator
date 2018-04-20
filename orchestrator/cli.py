@@ -1,4 +1,5 @@
 import logging
+
 import click
 import yaml
 
@@ -48,6 +49,7 @@ def deploy(provider, driver, constraints, force, conf, env):
     t.inventory()
     if constraints:
         t.emulate(constraints=constraints, env=env)
+
     t.prepare(driver=driver, env=env)
 
 
@@ -128,8 +130,10 @@ def destroy(env):
 def traffic(constraints, validate, reset, env):
     if constraints:
         t.emulate(constraints=constraints, env=env)
+
     elif validate:
         t.validate(env=env)
+
     elif reset:
         t.reset(env=env)
 
@@ -177,7 +181,8 @@ def perform_backup(backup, env):
 @click.option("--env",
               default=None,
               help="alternative environment directory")
-def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, length, executor, version, env):
+def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls,
+                pause, timeout, length, executor, version, env):
     t.test_case_1(nbr_clients=nbr_clients,
                   nbr_servers=nbr_servers,
                   call_type=call_type,
@@ -220,7 +225,8 @@ def test_case_1(nbr_clients, nbr_servers, call_type, nbr_calls, pause, timeout, 
 @click.option("--env",
               default=None,
               help="alternative environment directory")
-def test_case_2(nbr_topics, call_type, nbr_calls, pause, timeout, length, executor, version, env):
+def test_case_2(nbr_topics, call_type, nbr_calls, pause,
+                timeout, length, executor, version, env):
     t.test_case_2(nbr_topics=nbr_topics,
                   call_type=call_type,
                   nbr_calls=nbr_calls,
@@ -261,7 +267,8 @@ def test_case_2(nbr_topics, call_type, nbr_calls, pause, timeout, length, execut
 @click.option("--env",
               default=None,
               help="alternative environment directory")
-def test_case_3(nbr_clients, nbr_servers, nbr_calls, pause, timeout, length, executor, version, env):
+def test_case_3(nbr_clients, nbr_servers, nbr_calls, pause,
+                timeout, length, executor, version, env):
     t.test_case_3(nbr_clients=nbr_clients,
                   nbr_servers=nbr_servers,
                   nbr_calls=nbr_calls,
@@ -305,7 +312,8 @@ def test_case_3(nbr_clients, nbr_servers, nbr_calls, pause, timeout, length, exe
 @click.option("--env",
               default=None,
               help="alternative environment directory")
-def test_case_4(nbr_clients, nbr_servers, nbr_topics, nbr_calls, pause, timeout, length, executor, version, env):
+def test_case_4(nbr_clients, nbr_servers, nbr_topics, nbr_calls,
+                pause, timeout, length, executor, version, env):
     t.test_case_4(nbr_clients=nbr_clients,
                   nbr_servers=nbr_servers,
                   nbr_topics=nbr_topics,
@@ -351,6 +359,7 @@ def campaign(test, provider, incremental, pause, unfiltered, force, conf, env):
                                force=force,
                                config=config,
                                env=env)
+
     else:
         c.campaign(test=test,
                    provider=provider,
