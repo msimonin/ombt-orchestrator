@@ -1,16 +1,16 @@
 campaign:
   test_case_1:
-    nbr_clients: [1, 10]
-    nbr_servers: [1, 10]
-    nbr_calls: [100, 100]
-    pause: [0, 0.1]
+    nbr_clients: [1]
+    nbr_servers: [1]
+    nbr_calls: [100000]
+    pause: [0]
     call_type: ["rpc-call"]
-    timeout: [20]
+    timeout: [3600]
     version: ["msimonin/ombt:singleton"]
     length: [1024]
     executor: ["threading"]
-    driver: ["broker"]
-    delay: [ "0ms", "10ms", "100ms"]
+    driver: ["broker", "router"]
+    delay: [null, 0ms, 10ms, 20ms, 30ms, 40ms, 50ms, 60ms, 70ms, 80ms, 90ms, 100ms]
     traffic: ["tc-10"]
   test_case_2:
     nbr_topics: [10]
@@ -37,7 +37,7 @@ drivers:
   broker:
     type: rabbitmq
     mode: cluster
-    number: 3
+    number: 1
   router-4:
     type: qdr
     topology: complete_graph
@@ -130,11 +130,12 @@ vagrant:
         - telegraf
         - chrony
         flavor: tiny
-        number: 2
+        number: 1
         networks:
           - control_network
           - internal_network
       - roles:
+        - tc-serv-1
         - control-bus
         - ombt-client
         - ombt-server
