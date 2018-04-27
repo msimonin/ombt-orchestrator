@@ -1,4 +1,9 @@
 ---
+- name: Generate the configuration file
+  template:
+    src: oslo_messaging.conf.j2
+    dest: /oslo_messaging.conf
+
 - name: Create ombt-data directory for the agent(s)
   file:
     path: "{{ item.log | dirname }}"
@@ -25,6 +30,7 @@
     state: started
     volumes:
       - "{{ item.log }}:{{item.docker_log}}"
+      - "/oslo_messaging.conf:/oslo_messaging.conf"
   with_items: "{{ ombt_confs['controller'][inventory_hostname] }}"
   when: inventory_hostname in ombt_confs[agent_type]
 

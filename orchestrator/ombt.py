@@ -124,6 +124,7 @@ class OmbtAgent(object):
         command.append("--unique")
         command.append("--timeout %s " % self.timeout)
         command.append("--topic %s " % self.topic)
+        command.append("--oslo-config /oslo_messaging.conf")
         command.append(self.generate_connections())
         command.append(self.get_type())
         # NOTE(msimonin): we don't use verbosity for client/server

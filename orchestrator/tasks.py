@@ -496,7 +496,8 @@ def generate_shard_conf(shard_index, nbr_clients, nbr_servers, call_type,
                            "machine": machine,
                            "bus_agents": [bus_agent],
                            "topic": topic,
-                           "control_agents": [control_agent]})
+                           "control_agents": [control_agent]}
+                          )
             agent_conf = agent_desc["klass"](**kwargs)
             ombt_confs[agent_type].setdefault(machine, []).append(agent_conf)
 
@@ -522,9 +523,10 @@ def test_case(ombt_confs, version=VERSION, env=None, backup_dir=BACKUP_DIR, **kw
         # NOTE(msimonin): This could be moved in each conf
         "ombt_version": version,
         "broker": env["broker"],
-        "ombt_confs": serialize_ombt_confs(ombt_confs)
+        "ombt_confs": serialize_ombt_confs(ombt_confs),
+        "oslo_config": env["config"].get("oslo_config")
     }
-    
+
     run_ansible([path.join(ANSIBLE_DIR, "test_case.yml")],
                 env["inventory"], extra_vars=extra_vars)
 

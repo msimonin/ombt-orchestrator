@@ -1,4 +1,9 @@
 ---
+- name: Generate the configuration file
+  template:
+    src: oslo_messaging.conf.j2
+    dest: /oslo_messaging.conf
+
 - name: Start ombt client(s)
   docker_container:
     image: "{{ ombt_version }}"
@@ -7,5 +12,7 @@
     detach: "{{ item.detach }}"
     network_mode: host
     state: started
+    volumes:
+      - "/oslo_messaging.conf:/oslo_messaging.conf"
   with_items: "{{ ombt_confs[agent_type][inventory_hostname] }}"
   when: inventory_hostname in ombt_confs[agent_type]

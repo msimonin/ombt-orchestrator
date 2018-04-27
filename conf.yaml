@@ -46,10 +46,18 @@ drivers:
     qdr_version: 1.0.1
   router:
     type: qdr
-    topology: complete_graph
-    args: [1]
+    topology: cycle_graph
+    args: [5]
     qdr_image: msimonin/qdrouterd-collectd
     qdr_version: 1.0.1
+# oslo_config to apply
+# Note this is global to any oslo agent
+# Supported keys:
+#   - rabbit_qos_prefetch_count
+#   - reply_link_credit
+#   - rpc_server_credit
+oslo_config:
+  rabbit_qos_prefetch_count: 100
 traffic:
   tc-10:
     enable: True

@@ -1,0 +1,10 @@
+{% if oslo_config %}
+
+[oslo_messaging_rabbit]
+rabbit_qos_prefetch_count = {{ oslo_config.rabbit_qos_prefetch_count or 0 }}
+
+[oslo_messaging_amqp]
+reply_link_credit = {{ oslo_config.reply_link_credit or 200 }}
+rpc_server_credit = {{ oslo_config.rpc_server_credit or 100 }}
+
+{% endif %}
