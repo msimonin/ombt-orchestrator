@@ -308,7 +308,11 @@ def test_case_1(**kwargs):
         # but is unlikely to happen since nbr_clients >= nbr_servers
         kwargs["nbr_clients"] = s_client
         kwargs["nbr_servers"] = s_server
-        ombt_conf = generate_shard_conf(shard_index, **kwargs)
+        ombt_conf = generate_shard_conf(
+            shard_index,
+            sum(s_servers[0:shard_index]),
+            sum(s_clients[0:shard_index]),
+            **kwargs)
         merge_ombt_confs(ombt_confs, ombt_conf)
 
     test_case(ombt_confs, **kwargs)
@@ -337,7 +341,11 @@ def test_case_2(**kwargs):
         kwargs["nbr_clients"] = len(s_topic)
         kwargs["nbr_servers"] = len(s_topic)
         kwargs["topics"] = s_topic
-        ombt_conf = generate_shard_conf(shard_index, **kwargs)
+        ombt_conf = generate_shard_conf(
+            shard_index,
+            sum(s_topic[0:shard_index]),
+            sum(s_topic[0:shard_index]),
+            **kwargs)
         merge_ombt_confs(ombt_confs, ombt_conf)
 
     test_case(ombt_confs, **kwargs)
@@ -361,7 +369,11 @@ def test_case_3(**kwargs):
     for shard_index, s_server in zip(range(shards), s_servers):
         # kwargs["nbr_clients"] = 1
         kwargs["nbr_servers"] = s_server
-        ombt_conf = generate_shard_conf(shard_index, **kwargs)
+        ombt_conf = generate_shard_conf(
+            shard_index,
+            sum(s_server[0:shard_index]),
+            shard_index,
+            **kwargs)
         merge_ombt_confs(ombt_confs, ombt_conf)
 
     test_case(ombt_confs, **kwargs)
@@ -391,13 +403,18 @@ def test_case_4(**kwargs):
         kwargs["nbr_clients"] = nbr_clients * len(s_topic)
         kwargs["nbr_servers"] = nbr_servers * len(s_topic)
         kwargs["topics"] = s_topic
-        ombt_conf = generate_shard_conf(shard_index, **kwargs)
+        ombt_conf = generate_shard_conf(
+            shard_index,
+            sum(s_topic[0:shard_index]) * nbr_servers,
+            sum(s_topic[0:shard_index]) * nbr_clients,
+            **kwargs)
         merge_ombt_confs(ombt_confs, ombt_conf)
 
     test_case(ombt_confs, **kwargs)
 
 
-def generate_shard_conf(shard_index, nbr_clients, nbr_servers, call_type,
+def generate_shard_conf(shard_index_ctl, shard_index_server, shard_index_client,
+                        nbr_clients, nbr_servers, call_type,
                         nbr_calls, pause, timeout, length, executor, env,
                         topics, iteration_id, **kwargs):
     """Generates the configuration of the agents of 1 shard (for 1 controller)."""
@@ -421,7 +438,7 @@ def generate_shard_conf(shard_index, nbr_clients, nbr_servers, call_type,
         return ombt_confs
 
     bus_conf = env["bus_conf"]
-    control_bus_conf = [env["control_bus_conf"][shard_index]]
+    control_bus_conf = [env["control_bus_conf"][shard_index_ctl]]
     machine_client = env["roles"]["bus"]
     if "bus-client" in env["roles"]:
         machine_client = env["roles"]["bus-client"]
@@ -443,7 +460,8 @@ def generate_shard_conf(shard_index, nbr_clients, nbr_servers, call_type,
             "klass": OmbtClient,
             "kwargs": {
                 "timeout": timeout,
-            }
+            },
+            "shard_index": shard_index_client,
         },
         {
             "agent_type": "rpc-server",
@@ -455,7 +473,8 @@ def generate_shard_conf(shard_index, nbr_clients, nbr_servers, call_type,
             "kwargs": {
                 "timeout": timeout,
                 "executor": executor,
-            }
+            },
+            "shard_index": shard_index_server,
         },
         {
             "agent_type": "controller",
@@ -469,18 +488,31 @@ def generate_shard_conf(shard_index, nbr_clients, nbr_servers, call_type,
                 "pause": pause,
                 "timeout": timeout,
                 "length": length,
-            }
+            },
+            "shard_index": shard_index_ctl
         }]
 
     for agent_desc in descs:
         agent_type = agent_desc["agent_type"]
         machines = agent_desc["machines"]
         ombt_confs.setdefault(agent_type, {})
+        shard_index = agent_desc["shard_index"]
         for agent_index in range(agent_desc["number"]):
             # Taking into account a shard index has several benefit:
             # first the distribution accross nodes or bus agent is more balanced
             # -> the first agents of to distinct shard doesn't land on the same node
             # second this provide some unicity for the agent_id
+            #
+            # Edit 04/29(msimonin)
+            # considering the case where we have 10 machines, 4 shards, 20 servers to start
+            # We'd like to have an homogeneous distribution
+            # Without shard_index only the first 5 machines will get the servers
+            # With shard_index:
+            # - the first 5 machines will get 1 server each for the 1st shard (shard_index=0)
+            # - the next 5 machines will get 1 server each for the 2nd shard (shard_index=5)
+            # - the next 5 machines (= the first 5 machines) will get 1 more
+            # server each (shard_index=10)
+            # etc
             idx = agent_index + shard_index
             # choose a topic
             topic = topics[idx % len(topics)]
@@ -524,7 +556,7 @@ def test_case(ombt_confs, version=VERSION, env=None, backup_dir=BACKUP_DIR, **kw
         "broker": env["broker"],
         "ombt_confs": serialize_ombt_confs(ombt_confs)
     }
-    
+
     run_ansible([path.join(ANSIBLE_DIR, "test_case.yml")],
                 env["inventory"], extra_vars=extra_vars)
 
