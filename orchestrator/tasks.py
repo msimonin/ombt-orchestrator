@@ -580,7 +580,7 @@ def validate(**kwargs):
     env = kwargs["env"]
     _inventory = env["inventory"]
     roles = env["roles"]
-    directory = kwargs["directory"]
+    directory = kwargs.get("directory", BACKUP_DIR)
     backup_dir = get_backup_directory(directory)
     validate_network(roles, _inventory, output_dir=backup_dir)
 
