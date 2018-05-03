@@ -1,4 +1,5 @@
 import itertools
+import json
 import os
 import sys
 import uuid
@@ -636,3 +637,9 @@ def destroy(**kwargs):
                 env["inventory"], extra_vars=extra_vars)
     run_ansible([path.join(ANSIBLE_DIR, "ombt.yml")],
                 env["inventory"], extra_vars=extra_vars)
+
+@enostask()
+def info(**kwargs):
+    env = kwargs["env"]
+    ansible_bus_conf = generate_ansible_conf("bus_conf", env.get("bus_conf"))
+    print(json.dumps(ansible_bus_conf))

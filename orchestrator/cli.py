@@ -367,3 +367,10 @@ def campaign(test, provider, incremental, pause, unfiltered, force, conf, env):
                    force=force,
                    config=config,
                    env=env)
+
+@cli.command(help="List a curated version of the environment")
+@click.option("--env",
+              default=None,
+              help="alternative environment directory")
+def info(env):
+    t.info(env=env)
