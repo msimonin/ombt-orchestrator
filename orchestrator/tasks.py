@@ -6,7 +6,8 @@ from os import path
 
 from enoslib.api import run_ansible, generate_inventory, emulate_network, \
     validate_network, reset_network
-from enoslib.infra.enos_chameleonkvm.provider import Chameleonkvm
+# NOTE()msimonin) dropping the chameleon support temporary
+#from enoslib.infra.enos_chameleonkvm.provider import Chameleonkvm
 from enoslib.infra.enos_g5k.provider import G5k
 from enoslib.infra.enos_vagrant.provider import Enos_vagrant
 from enoslib.task import enostask
@@ -168,10 +169,10 @@ def vagrant(**kwargs):
     init_provider(Enos_vagrant, "vagrant", **kwargs)
 
 
-@enostask(new=True)
-def chameleon(**kwargs):
-    # Here **kwargs strictly means (force, config, env), no more no less
-    init_provider(Chameleonkvm, "chameleon", **kwargs)
+# @enostask(new=True)
+#def chameleon(**kwargs):
+#    # Here **kwargs strictly means (force, config, env), no more no less
+#    init_provider(Chameleonkvm, "chameleon", **kwargs)
 
 
 def init_provider(provider, name, force, config, env):
@@ -185,7 +186,7 @@ def init_provider(provider, name, force, config, env):
 PROVIDERS = {
     "g5k": g5k,
     "vagrant": vagrant,
-    "chameleon": chameleon
+#    "chameleon": chameleon
 }
 
 
