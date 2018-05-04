@@ -91,6 +91,25 @@ def vagrant(constraints, force, conf, env):
         t.emulate(constraints=constraints, env=env)
 
 
+@cli.command(help="Use static ressoures")
+@click.option("--constraints",
+              help="network constraints")
+@click.option("--force",
+              is_flag=True,
+              help="force redeployment")
+@click.option("--conf",
+              default=CONF,
+              help="alternative configuration file")
+@click.option("--env",
+              help="alternative environment directory")
+def static(constraints, force, conf, env):
+    config = load_config(conf)
+    t.static(force=force, config=config, env=env)
+    if constraints:
+        t.inventory()
+        t.emulate(constraints=constraints, env=env)
+
+
 @cli.command(help="Generate the Ansible inventory [after g5k or vagrant].")
 @click.option("--env",
               help="alternative environment directory")
