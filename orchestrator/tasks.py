@@ -352,8 +352,8 @@ def test_case_2(**kwargs):
         kwargs["topics"] = s_topic
         ombt_conf = generate_shard_conf(
             shard_index,
-            sum(s_topic[0:shard_index]),
-            sum(s_topic[0:shard_index]),
+            len(s_topic[0:shard_index]),
+            len(s_topic[0:shard_index]),
             **kwargs)
         merge_ombt_confs(ombt_confs, ombt_conf)
 
@@ -414,8 +414,8 @@ def test_case_4(**kwargs):
         kwargs["topics"] = s_topic
         ombt_conf = generate_shard_conf(
             shard_index,
-            sum(s_topic[0:shard_index]) * nbr_servers,
-            sum(s_topic[0:shard_index]) * nbr_clients,
+            len(s_topic[0:shard_index]) * nbr_servers,
+            len(s_topic[0:shard_index]) * nbr_clients,
             **kwargs)
         merge_ombt_confs(ombt_confs, ombt_conf)
 
