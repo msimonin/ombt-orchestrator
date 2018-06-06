@@ -406,6 +406,7 @@ def incremental_campaign(test, provider, pause, unfiltered, force, config, env):
                 current_parameters.update(fixed_parameters)
                 iteration = next(iterations)
                 iteration_id = "{}-{}".format(group_id, iteration)
+                current_parameters.update({"iteration_id": iteration_id})
                 current_delay = current_parameters.get("delay", None)
                 if current_delay:
                     current_traffic = current_parameters["traffic"]
@@ -414,7 +415,6 @@ def incremental_campaign(test, provider, pause, unfiltered, force, config, env):
 
                 backup_directory = generate_id(current_parameters)
                 t.validate(env=env_dir, directory=backup_directory)
-                current_parameters.update({"iteration_id": iteration_id})
                 current_parameters.update({"backup_dir": backup_directory})
                 # fix number of clients and servers (or topics) to deploy
                 TEST_CASES[test]["fixp"](parameters, current_parameters)
