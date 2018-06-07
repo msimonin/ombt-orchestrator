@@ -572,12 +572,11 @@ def test_case(ombt_confs, version=VERSION, env=None, backup_dir=BACKUP_DIR, **kw
 
 @enostask()
 def emulate(**kwargs):
-    env = kwargs["env"]
-    constraints = kwargs["constraints"]
-    network_constraints = env["config"]["traffic"].get(constraints)
-    override = kwargs.get("override", None)
-    if override:
-        network_constraints["default_delay"] = override
+    env = kwargs.pop("env")
+    configuration_name = kwargs.pop("configuration_name")
+    network_constraints = env["config"]["traffic"].get(configuration_name)
+    for name, value in kwargs.items():
+        network_constraints[name] = value
 
     roles = env["roles"]
     _inventory = env["inventory"]
@@ -644,6 +643,7 @@ def destroy(**kwargs):
                 env["inventory"], extra_vars=extra_vars)
     run_ansible([path.join(ANSIBLE_DIR, "ombt.yml")],
                 env["inventory"], extra_vars=extra_vars)
+
 
 @enostask()
 def info(**kwargs):

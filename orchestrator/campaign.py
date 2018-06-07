@@ -267,6 +267,22 @@ def get_filter_function(name, flag):
     return functools.partial(filter_function, predicate)
 
 
+def override_network_constraints(parameters, env):
+    kwargs = {}
+    for parameter in ["delay", "rate", "loss"]:
+        current_parameter = parameters.get(parameter)
+        if current_parameter:
+            key = "default_{}".format(parameter)
+            kwargs[key] = current_parameter
+
+    # keep value only when (optional) loss is different from zero
+    if kwargs.get("default_loss") == 0:
+        kwargs.pop("default_loss")
+
+    traffic_configuration_name = parameters["traffic"]
+    t.emulate(configuration_name=traffic_configuration_name, env=env, **kwargs)
+
+
 def campaign(test, provider, unfiltered, force, config, env):
     parameters = config["campaign"][test]
     sweeps = execo_engine.sweep(parameters)
@@ -279,11 +295,7 @@ def campaign(test, provider, unfiltered, force, config, env):
     current_parameters = sweeper.get_next(filter_function)
     while current_parameters:
         try:
-            delay = current_parameters.get("delay", None)
-            if delay:
-                traffic = current_parameters["traffic"]
-                t.emulate(constraints=traffic, env=env_dir, override=delay)
-
+            override_network_constraints(current_parameters, env)
             backup_directory = generate_id(current_parameters)
             current_parameters.update({"backup_dir": backup_directory})
             t.validate(env=env_dir, directory=backup_directory)
@@ -407,12 +419,7 @@ def incremental_campaign(test, provider, pause, unfiltered, force, config, env):
                 iteration = next(iterations)
                 iteration_id = "{}-{}".format(group_id, iteration)
                 current_parameters.update({"iteration_id": iteration_id})
-                current_delay = current_parameters.get("delay", None)
-                if current_delay:
-                    current_traffic = current_parameters["traffic"]
-                    t.emulate(constraints=current_traffic, env=env_dir,
-                              override=current_delay)
-
+                override_network_constraints(current_parameters, env)
                 backup_directory = generate_id(current_parameters)
                 t.validate(env=env_dir, directory=backup_directory)
                 current_parameters.update({"backup_dir": backup_directory})
