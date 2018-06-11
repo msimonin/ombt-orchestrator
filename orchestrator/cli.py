@@ -387,6 +387,7 @@ def campaign(test, provider, incremental, pause, unfiltered, force, conf, env):
                    config=config,
                    env=env)
 
+
 @cli.command(help="List a curated version of the environment")
 @click.option("--env",
               default=None,
