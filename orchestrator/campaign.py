@@ -138,8 +138,8 @@ def fix_1(parameters, current_parameters):
     {'nbr_clients': 1, 'nbr_servers': 4, 'topics': ['topic-0']}
     """
     # Note(msimonin): We may want to extend the get_current_value to all 'zip' elements
-    [p_clients, p_servers], [c_clients, c_servers] = get_current_values(
-        parameters, current_parameters, ["nbr_clients", "nbr_servers"])
+    [p_clients, p_servers, _, _], [c_clients, c_servers, _, _] = get_current_values(
+        parameters, current_parameters, ["nbr_clients", "nbr_servers", "nbr_calls", "pause"])
     current_parameters.update({"topics": ["topic-0"]})
     current_parameters.update({"nbr_clients": c_clients - p_clients})
     current_parameters.update({"nbr_servers": c_servers - p_servers})

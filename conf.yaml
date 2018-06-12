@@ -1,16 +1,17 @@
 campaign:
   test_case_1:
-    nbr_clients: [1]
-    nbr_servers: [1]
-    nbr_calls: [100000]
-    pause: [0]
+    nbr_clients: [1, 1, 1]
+    nbr_servers: [1, 1, 1]
+    nbr_calls: [100, 50, 25]
+    pause: [0.1, 0.2, 0.3]
     call_type: ["rpc-call"]
     timeout: [3600]
     version: ["msimonin/ombt:singleton"]
     length: [1024]
     executor: ["threading"]
     driver: ["broker", "router"]
-    delay: [null, 0ms, 10ms, 20ms, 30ms, 40ms, 50ms, 60ms, 70ms, 80ms, 90ms, 100ms]
+    delay: [null, 0ms, 10ms, 50ms]
+    loss: [0, 0.5, 1]
     traffic: ["tc-10"]
   test_case_2:
     nbr_topics: [10]
