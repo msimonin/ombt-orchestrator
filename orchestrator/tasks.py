@@ -14,7 +14,7 @@ from enoslib.infra.enos_vagrant.provider import Enos_vagrant
 from enoslib.infra.enos_static.provider import Static
 from enoslib.task import enostask
 
-from orchestrator.constants import BACKUP_DIR, ANSIBLE_DIR, DRIVER, VERSION
+from orchestrator.constants import BACKUP_DIR, ANSIBLE_DIR, DRIVER, VERSION, MODE
 from orchestrator.ombt import OmbtClient, OmbtController, OmbtServer, \
     RabbitMQConf, QdrConf
 from orchestrator.qpid_dispatchgen import get_conf, generate, round_robin
@@ -232,7 +232,8 @@ def generate_bus_conf(config, role_machines, context=""):
         } for index in range(number)]
         # We inject the cluster nodes
         cluster_nodes = []
-        if config["mode"] == "cluster":
+        mode = config.get("mode", MODE)
+        if mode == "cluster":
             cluster_nodes = [(b["agent_id"], b["machine"]) for b in bus_conf]
 
         for b in bus_conf:

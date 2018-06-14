@@ -31,6 +31,8 @@ LENGTH = 1024
 EXECUTOR = "threading"
 # default pause between iterations (seconds)
 ITERATION_PAUSE = 1.0
+# default mode for drivers
+MODE = "standalone"
 # default driver
 DRIVER = {"type": "rabbitmq",
           "mode": "standalone"}
