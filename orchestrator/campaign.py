@@ -7,6 +7,7 @@ import operator
 import string
 import time
 import traceback
+from contextlib import suppress
 from os import path
 
 import execo_engine
@@ -268,18 +269,17 @@ def get_filter_function(name, flag):
 
 
 def override_network_constraints(parameters, env):
+    traffic_configuration_name = parameters.get("traffic")
+    if traffic_configuration_name is None:
+        return
+
     kwargs = {}
     for parameter in ["delay", "rate", "loss"]:
-        current_parameter = parameters.get(parameter)
-        if current_parameter:
+        with suppress(KeyError):
+            current_parameter = parameters[parameter]
             key = "default_{}".format(parameter)
             kwargs[key] = current_parameter
 
-    # keep value only when (optional) loss is different from zero
-    if kwargs.get("default_loss") == 0:
-        kwargs.pop("default_loss")
-
-    traffic_configuration_name = parameters["traffic"]
     t.emulate(configuration_name=traffic_configuration_name, env=env, **kwargs)
 
 
