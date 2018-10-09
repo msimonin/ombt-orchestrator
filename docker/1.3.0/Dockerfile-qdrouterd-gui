@@ -1,0 +1,9 @@
+FROM msimonin/qdrouterd:1.3.0
+
+MAINTAINER "matthieu.simonin@inria.fr"
+
+WORKDIR /opt/qpid-dispatch/console/stand-alone
+
+EXPOSE 8000
+CMD ["python","-m", "SimpleHTTPServer"]
+

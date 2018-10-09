@@ -1,6 +1,6 @@
-VERSION=1.0.1
+VERSION=1.3.0
 FLAGS=--no-cache
-#FLAGS=
+FLAGS=--network host
 
 all: $(VERSION)-qdr $(VERSION)-qdrc $(VERSION)-qdrg
 
